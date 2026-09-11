@@ -104,30 +104,42 @@
     let playing = false;
 
     // ====== 抓取歷史數據 ======
-    async function fetchHistory() {
-        // EODHD 歷史數據 API
-        const url = `https://eodhd.com/api/eod/${SYMBOL}.US?api_token=${API_KEY}&fmt=json&order=a&from=${getFromDate()}`;
-        try {
-            const res = await fetch(url);
-            const json = await res.json();
+    // ====== 抓取历史数据（Massive API 版本）======
+async function fetchHistory() {
+    const TICKER = 'TSM';                 // 不需要 .US 后缀
+    const API_KEY = '你從Massive拿到的KEY'; // 替换成你的真实 Key
+    const FROM_DATE = '2025-01-01';       // 起始日期
+    const TO_DATE = new Date().toISOString().split('T')[0]; // 今天
 
-            // 只取日期與收盤價
-            fullData = json
-                .filter(d => d.close != null)
-                .map(d => ({ date: d.date, close: d.close }));
+    // Massive 的聚合数据接口
+    const url = `https://api.massive.com/v2/aggs/ticker/${TICKER}/range/1/day/${FROM_DATE}/${TO_DATE}?apiKey=${API_KEY}&adjusted=true&sort=asc&limit=50000`;
 
-            if (fullData.length === 0) throw new Error('無數據');
+    try {
+        const res = await fetch(url);
+        const json = await res.json();
 
-            nameDisplay.textContent = `${SYMBOL} 歷史走勢`;
-            startPlayback();
-        } catch (err) {
-            console.error(err);
-            nameDisplay.textContent = '載入失敗，改用模擬數據';
-            // 若 API 失敗，退回到模擬數據，保證畫面能動
-            fullData = generateMockData(250);
-            startPlayback();
+        // 检查 API 是否返回了错误
+        if (json.status === 'ERROR' || !json.results) {
+            throw new Error(json.error || 'API 返回错误');
         }
+
+        // 转换数据格式：Massive 用 t（时间戳）和 c（收盘价）
+        fullData = json.results.map(d => ({
+            date: new Date(d.t).toISOString().split('T')[0],
+            close: d.c
+        }));
+
+        if (fullData.length === 0) throw new Error('無數據');
+
+        nameDisplay.textContent = `${TICKER} 歷史走勢`;
+        startPlayback();
+    } catch (err) {
+        console.error('抓取失敗:', err);
+        nameDisplay.textContent = '載入失敗，改用模擬數據';
+        fullData = generateMockData(250);
+        startPlayback();
     }
+}
 
     // 計算起始日期（根據 RANGE）
     function getFromDate() {
