@@ -16,6 +16,105 @@
             min-height: 100vh;
             margin: 0;
         }
+
+        /* 外層容器：左側選單 + 右側圖表 */
+        .app-wrapper {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+        }
+
+        /* 左側控制面板 */
+        .sidebar {
+            background-color: #1f2937;
+            border-radius: 8px;
+            padding: 20px;
+            width: 220px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .sidebar h3 {
+            margin: 0 0 12px 0;
+            font-size: 15px;
+            color: #9ca3af;
+            font-weight: 600;
+        }
+        .sidebar label {
+            display: block;
+            font-size: 13px;
+            color: #9ca3af;
+            margin-bottom: 6px;
+            margin-top: 14px;
+        }
+        .sidebar label:first-of-type {
+            margin-top: 0;
+        }
+        .sidebar select,
+        .sidebar input[type="text"] {
+            width: 100%;
+            background-color: #374151;
+            color: #fff;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .sidebar input[type="text"] {
+            cursor: text;
+            font-family: monospace;
+            text-transform: uppercase;
+        }
+        .sidebar select:hover,
+        .sidebar input[type="text"]:hover {
+            border-color: #6b7280;
+        }
+        .sidebar select:focus,
+        .sidebar input[type="text"]:focus {
+            border-color: #ef4444;
+        }
+
+        /* 覆蓋範圍提示框 */
+        .coverage-box {
+            margin-top: 14px;
+            padding: 10px 12px;
+            background-color: #111827;
+            border-radius: 6px;
+            border-left: 3px solid #ef4444;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #9ca3af;
+        }
+        .coverage-box .title {
+            font-weight: 600;
+            color: #d1d5db;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+        .coverage-box ul {
+            margin: 0;
+            padding-left: 16px;
+        }
+        .coverage-box li {
+            margin-bottom: 2px;
+        }
+        .coverage-box .warn {
+            color: #f59e0b;
+        }
+        .coverage-box .ok {
+            color: #22c55e;
+        }
+        .coverage-box code {
+            background-color: #1f2937;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #fbbf24;
+            font-size: 11px;
+        }
+
+        /* 右側圖表區 */
         .chart-container {
             background-color: #1f2937;
             border-radius: 8px;
@@ -49,6 +148,28 @@
             color: #6b7280;
             margin-top: 2px;
         }
+
+        /* 圖表 + 右下角日期標註 */
+        .canvas-wrapper {
+            position: relative;
+        }
+        .date-range {
+            position: absolute;
+            right: 8px;
+            bottom: 6px;
+            font-size: 11px;
+            font-family: monospace;
+            color: #6b7280;
+            background-color: rgba(17, 24, 39, 0.85);
+            padding: 3px 8px;
+            border-radius: 4px;
+            pointer-events: none;
+            letter-spacing: 0.5px;
+        }
+        .date-range span {
+            color: #9ca3af;
+        }
+
         canvas {
             display: block;
             background-color: #111827;
@@ -72,24 +193,69 @@
         button:hover {
             background-color: #4b5563;
         }
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
 
-<div class="chart-container">
-    <div class="stock-info">
-        <div>
-            <div class="stock-name" id="stockName">載入中...</div>
-            <div class="date-label" id="dateLabel">—</div>
-            <div class="update-time" id="updateTime">更新時間：—</div>
+<div class="app-wrapper">
+
+    <!-- 左側控制面板 -->
+    <div class="sidebar">
+        <h3>控制面板</h3>
+
+        <label for="apiSource">API 來源</label>
+        <select id="apiSource">
+            <option value="massive">Massive</option>
+            <option value="eodhd">EODHD</option>
+        </select>
+
+        <label for="tickerInput">股票代碼</label>
+        <input type="text" id="tickerInput" value="TSM" placeholder="例如：TSM、AAPL">
+
+        <!-- API 股票覆蓋範圍提示 -->
+        <div class="coverage-box" id="coverageBox">
+            <div class="title">📊 覆蓋範圍與輸入格式</div>
+            <ul>
+                <li>
+                    <span class="ok">Massive</span>：美股<br>
+                    格式：<code>TSM</code>、<code>AAPL</code>（無後綴）
+                </li>
+                <li>
+                    <span class="ok">EODHD</span>：全球多市場<br>
+                    美股：<code>AAPL.US</code><br>
+                    港股：<code>1024.HK</code><br>
+                    A股：<code>600519.SH</code>
+                </li>
+            </ul>
         </div>
-        <div id="stockPrice" class="stock-price">—</div>
     </div>
-    <canvas id="stockCanvas" width="800" height="300"></canvas>
-    <div class="controls">
-        <button id="replayBtn">重新播放</button>
-        <button id="refreshBtn">重新整理</button>
+
+    <!-- 右側圖表 -->
+    <div class="chart-container">
+        <div class="stock-info">
+            <div>
+                <div class="stock-name" id="stockName">載入中...</div>
+                <div class="date-label" id="dateLabel">—</div>
+                <div class="update-time" id="updateTime">更新時間：—</div>
+            </div>
+            <div id="stockPrice" class="stock-price">—</div>
+        </div>
+
+        <!-- Canvas 與右下角日期範圍 -->
+        <div class="canvas-wrapper">
+            <canvas id="stockCanvas" width="800" height="300"></canvas>
+            <div class="date-range" id="dateRange">—</div>
+        </div>
+
+        <div class="controls">
+            <button id="playBtn" disabled>▶ 播放</button>
+        </div>
     </div>
+
 </div>
 
 <script>
@@ -99,24 +265,31 @@
     const nameDisplay = document.getElementById('stockName');
     const dateDisplay = document.getElementById('dateLabel');
     const updateTimeDisplay = document.getElementById('updateTime');
-    const replayBtn = document.getElementById('replayBtn');
-    const refreshBtn = document.getElementById('refreshBtn');
+    const dateRangeDisplay = document.getElementById('dateRange');
+    const playBtn = document.getElementById('playBtn');
+    const apiSourceSelect = document.getElementById('apiSource');
+    const tickerInput = document.getElementById('tickerInput');
 
     // ====== 設定 ======
-    const TICKER = 'TSM';                 // 股票代碼（Massive 不需要 .US 後綴）
-    const API_KEY = 'uOR41h1k_SBKy18Z25BWziikTLGVSRkA'; // Massive API Key
+    let TICKER = tickerInput.value.trim().toUpperCase() || 'TSM';
+
+    // 各 API 的 Key
+    const API_KEYS = {
+        massive: 'uOR41h1k_SBKy18Z25BWziikTLGVSRkA',
+        eodhd: '6aa3729459ba98.67895924'
+    };
+
     const FROM_DATE = '2025-01-01';       // 起始日期
-    const PLAY_SPEED = 30;                // 每幀間隔(ms)，越小跑越快
+    const PLAY_SPEED = 30;                // 每幀間隔(ms)
 
     // ====== 狀態 ======
-    let fullData = [];       // 完整歷史數據 [{date, close}, ...]
-    let visibleCount = 0;    // 目前畫到第幾筆
+    let fullData = [];
+    let visibleCount = 0;
     let playing = false;
 
     // ====== 取得北京時區時間字串 ======
     function getBeijingTime() {
         const now = new Date();
-        // 使用 Intl.DateTimeFormat 轉換為北京時區（UTC+8）
         const formatter = new Intl.DateTimeFormat('zh-CN', {
             timeZone: 'Asia/Shanghai',
             year: 'numeric',
@@ -127,29 +300,50 @@
             second: '2-digit',
             hour12: false
         });
-        // 格式化為 2026/09/11 14:30:25 這種樣式
         const parts = formatter.formatToParts(now);
         const get = type => parts.find(p => p.type === type).value;
         return `${get('year')}/${get('month')}/${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
     }
 
-    // ====== 抓取歷史數據（Massive API 版本）======
-    async function fetchHistory() {
-        const TO_DATE = new Date().toISOString().split('T')[0]; // 今天
+    // ====== 更新右下角日期範圍 ======
+    function updateDateRange() {
+        if (fullData.length === 0) {
+            dateRangeDisplay.textContent = '—';
+            return;
+        }
+        const firstDate = fullData[0].date;
+        const lastDate = fullData[fullData.length - 1].date;
+        dateRangeDisplay.innerHTML = `<span>區間：</span>${firstDate} → ${lastDate}`;
+    }
 
-        // Massive 的聚合數據接口
-        const url = `https://api.massive.com/v2/aggs/ticker/${TICKER}/range/1/day/${FROM_DATE}/${TO_DATE}?apiKey=${API_KEY}&adjusted=true&sort=asc&limit=50000`;
+    // ====== 抓取歷史數據 ======
+    async function fetchHistory() {
+        TICKER = tickerInput.value.trim().toUpperCase() || 'TSM';
+        const source = apiSourceSelect.value;
+
+        playBtn.disabled = true;
+        playBtn.textContent = '▶ 播放';
+
+        if (source === 'massive') {
+            await fetchFromMassive();
+        } else if (source === 'eodhd') {
+            await fetchFromEODHD();
+        }
+    }
+
+    // ====== Massive API ======
+    async function fetchFromMassive() {
+        const TO_DATE = new Date().toISOString().split('T')[0];
+        const url = `https://api.massive.com/v2/aggs/ticker/${TICKER}/range/1/day/${FROM_DATE}/${TO_DATE}?apiKey=${API_KEYS.massive}&adjusted=true&sort=asc&limit=50000`;
 
         try {
             const res = await fetch(url);
             const json = await res.json();
 
-            // 檢查 API 是否返回了錯誤
             if (json.status === 'ERROR' || !json.results) {
                 throw new Error(json.error || 'API 返回錯誤');
             }
 
-            // 轉換數據格式：Massive 用 t（時間戳）和 c（收盤價）
             fullData = json.results.map(d => ({
                 date: new Date(d.t).toISOString().split('T')[0],
                 close: d.c
@@ -157,17 +351,52 @@
 
             if (fullData.length === 0) throw new Error('無數據');
 
-            nameDisplay.textContent = `${TICKER} 歷史走勢`;
+            nameDisplay.textContent = `${TICKER} 歷史走勢（Massive）`;
             updateTimeDisplay.textContent = `更新時間：${getBeijingTime()}`;
-            startPlayback();
+            updateDateRange();
+            prepareStaticView();
         } catch (err) {
-            console.error('抓取失敗:', err);
-            nameDisplay.textContent = '載入失敗，改用模擬數據';
-            updateTimeDisplay.textContent = `更新時間：${getBeijingTime()}（模擬數據）`;
-            // 若 API 失敗，退回到模擬數據，保證畫面能動
-            fullData = generateMockData(250);
-            startPlayback();
+            console.error('Massive 抓取失敗:', err);
+            handleFetchError('Massive');
         }
+    }
+
+    // ====== EODHD API ======
+    async function fetchFromEODHD() {
+        const symbol = TICKER.includes('.') ? TICKER : `${TICKER}.US`;
+        const url = `https://eodhd.com/api/eod/${symbol}?api_token=${API_KEYS.eodhd}&fmt=json&order=a&from=${FROM_DATE}`;
+
+        try {
+            const res = await fetch(url);
+            const json = await res.json();
+
+            if (json.message) {
+                throw new Error(json.message);
+            }
+
+            fullData = json
+                .filter(d => d.close != null)
+                .map(d => ({ date: d.date, close: d.close }));
+
+            if (fullData.length === 0) throw new Error('無數據');
+
+            nameDisplay.textContent = `${symbol} 歷史走勢（EODHD）`;
+            updateTimeDisplay.textContent = `更新時間：${getBeijingTime()}`;
+            updateDateRange();
+            prepareStaticView();
+        } catch (err) {
+            console.error('EODHD 抓取失敗:', err);
+            handleFetchError('EODHD');
+        }
+    }
+
+    // ====== 統一的錯誤處理 ======
+    function handleFetchError(sourceName) {
+        nameDisplay.textContent = `載入失敗（${sourceName}），改用模擬數據`;
+        updateTimeDisplay.textContent = `更新時間：${getBeijingTime()}（模擬數據）`;
+        fullData = generateMockData(250);
+        updateDateRange();
+        prepareStaticView();
     }
 
     // 備用模擬數據
@@ -185,21 +414,41 @@
         return arr;
     }
 
+    // ====== 準備靜態視圖 ======
+    function prepareStaticView() {
+        playing = false;
+        visibleCount = fullData.length;
+        drawChart();
+
+        playBtn.disabled = false;
+        playBtn.textContent = '▶ 播放';
+    }
+
     // ====== 播放控制 ======
     function startPlayback() {
         visibleCount = 0;
         playing = true;
+        playBtn.disabled = true;
+        playBtn.textContent = '播放中...';
         loop();
     }
 
-    replayBtn.addEventListener('click', () => {
+    playBtn.addEventListener('click', () => {
         if (fullData.length > 0) startPlayback();
     });
 
-    refreshBtn.addEventListener('click', () => {
+    apiSourceSelect.addEventListener('change', () => {
         nameDisplay.textContent = '載入中...';
         updateTimeDisplay.textContent = '更新時間：—';
         fetchHistory();
+    });
+
+    tickerInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            nameDisplay.textContent = '載入中...';
+            updateTimeDisplay.textContent = '更新時間：—';
+            fetchHistory();
+        }
     });
 
     // ====== 繪製 ======
@@ -221,16 +470,13 @@
         const paddingRight = 20;
         const plotWidth = canvas.width - paddingLeft - paddingRight;
 
-        // 用「完整數據長度」當 X 軸基準，讓線條由左往右長出來
         const totalPoints = fullData.length;
         const stepX = plotWidth / (totalPoints - 1);
 
-        // 漸層
         const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
         grad.addColorStop(0, 'rgba(239, 68, 68, 0.15)');
         grad.addColorStop(1, 'rgba(17, 24, 39, 0)');
 
-        // 折線
         ctx.beginPath();
         ctx.lineWidth = 2;
         ctx.strokeStyle = '#ef4444';
@@ -245,14 +491,12 @@
         }
         ctx.stroke();
 
-        // 填充
         const lastX = paddingLeft + (data.length - 1) * stepX;
         ctx.lineTo(lastX, canvas.height);
         ctx.lineTo(paddingLeft, canvas.height);
         ctx.fillStyle = grad;
         ctx.fill();
 
-        // 最新點
         const lastY = canvas.height - ((data[data.length - 1].close - minPrice) / priceRange) * canvas.height;
         ctx.beginPath();
         ctx.arc(lastX, lastY, 5, 0, 2 * Math.PI);
@@ -262,7 +506,6 @@
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // 更新文字
         const last = data[data.length - 1];
         const prev = data[data.length - 2] || last;
         const change = last.close - prev.close;
@@ -280,6 +523,8 @@
         if (visibleCount >= fullData.length) {
             visibleCount = fullData.length;
             playing = false;
+            playBtn.disabled = false;
+            playBtn.textContent = '↻ 重播';
         }
 
         drawChart();
