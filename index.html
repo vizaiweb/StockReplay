@@ -221,11 +221,11 @@
             <div class="title">📊 覆蓋範圍與輸入格式</div>
             <ul>
                 <li>
-                    <span class="ok">Massive</span>：美股<br>
+                    <span class="ok">Massive</span>：美股（歷史 2 年）<br>
                     格式：<code>TSM</code>、<code>AAPL</code>（無後綴）
                 </li>
                 <li>
-                    <span class="ok">EODHD</span>：全球多市場<br>
+                    <span class="ok">EODHD</span>：全球多市場（歷史 1 年）<br>
                     美股：<code>AAPL.US</code><br>
                     港股：<code>1024.HK</code><br>
                     A股：<code>600519.SH</code>
@@ -279,7 +279,20 @@
         eodhd: '6aa3729459ba98.67895924'
     };
 
-    const FROM_DATE = '2025-01-01';       // 起始日期
+    // Massive 免費方案可拿 2 年，起始日期設 2 年前
+    const FROM_DATE_MASSIVE = (() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 730);  // 730 天 ≈ 2 年
+        return d.toISOString().split('T')[0];
+    })();
+
+    // EODHD 免費方案只能拿 1 年，起始日期設 1 年前
+    const FROM_DATE_EODHD = (() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 365);  // 365 天 ≈ 1 年
+        return d.toISOString().split('T')[0];
+    })();
+
     const PLAY_SPEED = 30;                // 每幀間隔(ms)
 
     // ====== 狀態 ======
@@ -331,10 +344,10 @@
         }
     }
 
-    // ====== Massive API ======
+    // ====== Massive API（歷史 2 年）======
     async function fetchFromMassive() {
         const TO_DATE = new Date().toISOString().split('T')[0];
-        const url = `https://api.massive.com/v2/aggs/ticker/${TICKER}/range/1/day/${FROM_DATE}/${TO_DATE}?apiKey=${API_KEYS.massive}&adjusted=true&sort=asc&limit=50000`;
+        const url = `https://api.massive.com/v2/aggs/ticker/${TICKER}/range/1/day/${FROM_DATE_MASSIVE}/${TO_DATE}?apiKey=${API_KEYS.massive}&adjusted=true&sort=asc&limit=50000`;
 
         try {
             const res = await fetch(url);
@@ -361,10 +374,10 @@
         }
     }
 
-    // ====== EODHD API ======
+    // ====== EODHD API（歷史 1 年）======
     async function fetchFromEODHD() {
         const symbol = TICKER.includes('.') ? TICKER : `${TICKER}.US`;
-        const url = `https://eodhd.com/api/eod/${symbol}?api_token=${API_KEYS.eodhd}&fmt=json&order=a&from=${FROM_DATE}`;
+        const url = `https://eodhd.com/api/eod/${symbol}?api_token=${API_KEYS.eodhd}&fmt=json&order=a&from=${FROM_DATE_EODHD}`;
 
         try {
             const res = await fetch(url);
@@ -534,7 +547,7 @@
         }
     }
 
-    // 啟動
+    // 啟動：只抓數據，不播放
     fetchHistory();
 </script>
 
