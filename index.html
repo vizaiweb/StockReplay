@@ -18,7 +18,6 @@
             overflow-x: hidden;
         }
 
-        /* 外層容器 */
         .app-wrapper {
             display: flex;
             align-items: flex-start;
@@ -44,7 +43,6 @@
             pointer-events: none;
         }
 
-        /* 收合按鈕 */
         .toggle-btn {
             position: fixed;
             left: 20px;
@@ -80,8 +78,7 @@
         .sidebar label:first-of-type {
             margin-top: 0;
         }
-        .sidebar select,
-        .sidebar input[type="text"] {
+        .sidebar select {
             width: 100%;
             background-color: #374151;
             color: #fff;
@@ -93,17 +90,10 @@
             outline: none;
             box-sizing: border-box;
         }
-        .sidebar input[type="text"] {
-            cursor: text;
-            font-family: monospace;
-            text-transform: uppercase;
-        }
-        .sidebar select:hover,
-        .sidebar input[type="text"]:hover {
+        .sidebar select:hover {
             border-color: #6b7280;
         }
-        .sidebar select:focus,
-        .sidebar input[type="text"]:focus {
+        .sidebar select:focus {
             border-color: #ef4444;
         }
 
@@ -177,7 +167,6 @@
             margin-top: 2px;
         }
 
-        /* 圖表 + 右下角日期標註 */
         .canvas-wrapper {
             position: relative;
         }
@@ -229,12 +218,10 @@
 </head>
 <body>
 
-<!-- 收合/展開按鈕 -->
 <button class="toggle-btn" id="toggleBtn">☰</button>
 
 <div class="app-wrapper">
 
-    <!-- 左側控制面板 -->
     <div class="sidebar" id="sidebar">
         <h3>控制面板</h3>
 
@@ -250,7 +237,6 @@
             <option value="">載入中...</option>
         </select>
 
-        <!-- 覆蓋範圍提示 -->
         <div class="coverage-box" id="coverageBox">
             <div class="title">📊 資料來源</div>
             <ul>
@@ -261,7 +247,6 @@
         </div>
     </div>
 
-    <!-- 右側圖表 -->
     <div class="chart-container" id="chartContainer">
         <div class="stock-info">
             <div>
@@ -297,7 +282,6 @@
     const stockSelect = document.getElementById('stockSelect');
     const toggleBtn = document.getElementById('toggleBtn');
     const sidebar = document.getElementById('sidebar');
-    const chartContainer = document.getElementById('chartContainer');
 
     // ====== 收合/展開控制面板 ======
     let sidebarCollapsed = false;
@@ -312,25 +296,19 @@
         }
     });
 
-    // ====== 股票清單（依市場分類）======
-    // 你可以在這裡新增更多股票，或改成從 JSON 動態讀取
-    const STOCK_LISTS = {
-        hk: [
-            { code: '01024', name: '快手', file: 'hk_01024.json' },
-            { code: '00700', name: '騰訊', file: 'hk_00700.json' },
-            { code: '09988', name: '阿里巴巴', file: 'hk_09988.json' },
-            { code: '03690', name: '美團', file: 'hk_03690.json' },
-        ],
-        us: [
-            { code: 'TSM', name: '台積電 ADR', file: 'us_TSM.json' },
-            { code: 'AAPL', name: '蘋果', file: 'us_AAPL.json' },
-            { code: 'NVDA', name: '輝達', file: 'us_NVDA.json' },
-        ],
-        zh: [
-            { code: '600519', name: '貴州茅台', file: 'zh_600519.json' },
-            { code: '000858', name: '五糧液', file: 'zh_000858.json' },
-        ]
-    };
+    // ====== 股票清單（從 stocks.json 讀取）======
+    let STOCK_LISTS = {};
+
+    async function loadStockLists() {
+        try {
+            const res = await fetch('stocks.json');
+            STOCK_LISTS = await res.json();
+            updateStockList();
+        } catch (err) {
+            console.error('股票清單載入失敗:', err);
+            stockSelect.innerHTML = '<option value="">載入失敗</option>';
+        }
+    }
 
     // ====== 狀態 ======
     let fullData = [];
@@ -374,6 +352,7 @@
         stockSelect.innerHTML = '';
         if (list.length === 0) {
             stockSelect.innerHTML = '<option value="">暫無股票</option>';
+            drawEmptyChart();
             return;
         }
 
@@ -394,7 +373,7 @@
         const file = stockSelect.value;
         if (!file) return;
 
-        const stockInfo = STOCK_LISTS[market].find(s => s.file === file);
+        const stockInfo = (STOCK_LISTS[market] || []).find(s => s.file === file);
         if (!stockInfo) return;
 
         playBtn.disabled = true;
@@ -549,7 +528,7 @@
     }
 
     // ====== 啟動 ======
-    updateStockList();
+    loadStockLists();
 </script>
 
 </body>
