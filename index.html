@@ -330,19 +330,11 @@
     }
 
     // ====== 抓取歷史數據 ======
-    async function fetchHistory() {
-        TICKER = tickerInput.value.trim().toUpperCase() || 'TSM';
-        const source = apiSourceSelect.value;
-
-        playBtn.disabled = true;
-        playBtn.textContent = '▶ 播放';
-
-        if (source === 'massive') {
-            await fetchFromMassive();
-        } else if (source === 'eodhd') {
-            await fetchFromEODHD();
-        }
-    }
+   async function fetchHistory() {
+    playBtn.disabled = true;
+    playBtn.textContent = '▶ 播放';
+    await fetchFromLocalJSON();
+}
 
     // ====== Massive API（歷史 2 年）======
     async function fetchFromMassive() {
@@ -374,34 +366,27 @@
         }
     }
 
-    // ====== EODHD API（歷史 1 年）======
-    async function fetchFromEODHD() {
-        const symbol = TICKER.includes('.') ? TICKER : `${TICKER}.US`;
-        const url = `https://eodhd.com/api/eod/${symbol}?api_token=${API_KEYS.eodhd}&fmt=json&order=a&from=${FROM_DATE_EODHD}`;
+    // ====== 讀取本地 JSON ======
+async function fetchFromLocalJSON() {
+    try {
+        const res = await fetch('hk_01024.json');
+        const json = await res.json();
 
-        try {
-            const res = await fetch(url);
-            const json = await res.json();
+        fullData = json
+            .filter(d => d.close != null)
+            .map(d => ({ date: d.date, close: d.close }));
 
-            if (json.message) {
-                throw new Error(json.message);
-            }
+        if (fullData.length === 0) throw new Error('無數據');
 
-            fullData = json
-                .filter(d => d.close != null)
-                .map(d => ({ date: d.date, close: d.close }));
-
-            if (fullData.length === 0) throw new Error('無數據');
-
-            nameDisplay.textContent = `${symbol} 歷史走勢（EODHD）`;
-            updateTimeDisplay.textContent = `更新時間：${getBeijingTime()}`;
-            updateDateRange();
-            prepareStaticView();
-        } catch (err) {
-            console.error('EODHD 抓取失敗:', err);
-            handleFetchError('EODHD');
-        }
+        nameDisplay.textContent = `快手 (01024.HK) 歷史走勢`;
+        updateTimeDisplay.textContent = `更新時間：${getBeijingTime()}（本地數據）`;
+        updateDateRange();
+        prepareStaticView();
+    } catch (err) {
+        console.error('本地 JSON 讀取失敗:', err);
+        handleFetchError('本地');
     }
+}
 
     // ====== 統一的錯誤處理 ======
     function handleFetchError(sourceName) {
