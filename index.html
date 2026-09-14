@@ -18,7 +18,6 @@
             overflow-x: hidden;
         }
 
-        /* 外層容器 */
         .app-wrapper {
             display: flex;
             align-items: flex-start;
@@ -47,7 +46,6 @@
             pointer-events: none;
         }
 
-        /* 收合按鈕 */
         .toggle-btn {
             position: fixed;
             left: 20px;
@@ -102,6 +100,55 @@
             border-color: #ef4444;
         }
 
+        /* 速度滑桿 */
+        .speed-control {
+            margin-top: 14px;
+        }
+        .speed-control .speed-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .speed-control .speed-header label {
+            margin: 0;
+            font-size: 13px;
+            color: #9ca3af;
+        }
+        .speed-control .speed-value {
+            font-size: 12px;
+            font-family: monospace;
+            color: #fbbf24;
+        }
+        .speed-control input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: #4b5563;
+            outline: none;
+            cursor: pointer;
+        }
+        .speed-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ef4444;
+            cursor: pointer;
+            border: 2px solid #fff;
+        }
+        .speed-control input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ef4444;
+            cursor: pointer;
+            border: 2px solid #fff;
+        }
+
         /* 右側圖表區 */
         .chart-container {
             background-color: #1f2937;
@@ -142,7 +189,6 @@
             margin-top: 2px;
         }
 
-        /* 圖表 + 右下角日期標註 */
         .canvas-wrapper {
             position: relative;
         }
@@ -176,7 +222,7 @@
             gap: 10px;
             align-items: center;
         }
-        button.play-btn {
+        button.play-btn, button.pause-btn {
             background-color: #374151;
             color: #fff;
             border: none;
@@ -185,10 +231,10 @@
             cursor: pointer;
             font-size: 14px;
         }
-        button.play-btn:hover {
+        button.play-btn:hover, button.pause-btn:hover {
             background-color: #4b5563;
         }
-        button.play-btn:disabled {
+        button.play-btn:disabled, button.pause-btn:disabled {
             opacity: 0.4;
             cursor: not-allowed;
         }
@@ -196,7 +242,6 @@
 </head>
 <body>
 
-<!-- 收合/展開按鈕 -->
 <button class="toggle-btn" id="toggleBtn">☰</button>
 
 <div class="app-wrapper">
@@ -216,6 +261,15 @@
         <select id="stockSelect">
             <option value="">載入中...</option>
         </select>
+
+        <!-- 速度控制 -->
+        <div class="speed-control">
+            <div class="speed-header">
+                <label for="speedSlider">跑動速度</label>
+                <span class="speed-value" id="speedValue">中</span>
+            </div>
+            <input type="range" id="speedSlider" min="1" max="10" value="5" step="1">
+        </div>
     </div>
 
     <!-- 右側圖表 -->
@@ -236,6 +290,7 @@
 
         <div class="controls">
             <button class="play-btn" id="playBtn" disabled>▶ 播放</button>
+            <button class="pause-btn" id="pauseBtn" disabled>⏸ 暫停</button>
         </div>
     </div>
 
@@ -250,11 +305,28 @@
     const updateTimeDisplay = document.getElementById('updateTime');
     const dateRangeDisplay = document.getElementById('dateRange');
     const playBtn = document.getElementById('playBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
     const marketSelect = document.getElementById('marketSelect');
     const stockSelect = document.getElementById('stockSelect');
     const toggleBtn = document.getElementById('toggleBtn');
     const sidebar = document.getElementById('sidebar');
     const chartContainer = document.getElementById('chartContainer');
+    const speedSlider = document.getElementById('speedSlider');
+    const speedValue = document.getElementById('speedValue');
+
+    // ====== 速度設定 ======
+    // 滑桿值 1~10，對應每幀間隔 100ms~10ms（值越大越快）
+    let frameDelay = 30;  // 預設值
+
+    function updateSpeed() {
+        const val = parseInt(speedSlider.value, 10);  // 1~10
+        // 映射：1 → 100ms，10 → 10ms
+        frameDelay = Math.round(110 - val * 10);
+        const labels = { 1:'極慢', 2:'很慢', 3:'慢', 4:'偏慢', 5:'中', 6:'偏快', 7:'快', 8:'很快', 9:'極快', 10:'閃電' };
+        speedValue.textContent = labels[val] || '中';
+    }
+    speedSlider.addEventListener('input', updateSpeed);
+    updateSpeed();  // 初始化
 
     // ====== 收合/展開控制面板 ======
     let sidebarCollapsed = false;
@@ -269,7 +341,6 @@
             chartContainer.classList.remove('expanded');
             toggleBtn.textContent = '✕';
         }
-        // 重新繪製圖表以適應新寬度
         drawChart();
     });
 
@@ -291,6 +362,8 @@
     let fullData = [];
     let visibleCount = 0;
     let playing = false;
+    let paused = false;
+    let animTimer = null;
 
     // ====== 取得北京時區時間字串 ======
     function getBeijingTime() {
@@ -352,8 +425,10 @@
         const stockInfo = (STOCK_LISTS[market] || []).find(s => s.file === file);
         if (!stockInfo) return;
 
+        stopPlayback();
         playBtn.disabled = true;
         playBtn.textContent = '▶ 播放';
+        pauseBtn.disabled = true;
         nameDisplay.textContent = '載入中...';
         updateTimeDisplay.textContent = '更新時間：—';
 
@@ -385,25 +460,57 @@
 
     // ====== 準備靜態視圖 ======
     function prepareStaticView() {
-        playing = false;
+        stopPlayback();
         visibleCount = fullData.length;
         drawChart();
         playBtn.disabled = false;
         playBtn.textContent = '▶ 播放';
+        pauseBtn.disabled = true;
+    }
+
+    // ====== 停止播放 ======
+    function stopPlayback() {
+        playing = false;
+        paused = false;
+        if (animTimer) {
+            clearTimeout(animTimer);
+            animTimer = null;
+        }
     }
 
     // ====== 播放控制 ======
     function startPlayback() {
+        stopPlayback();
         visibleCount = 0;
         playing = true;
+        paused = false;
         playBtn.disabled = true;
         playBtn.textContent = '播放中...';
+        pauseBtn.disabled = false;
+        pauseBtn.textContent = '⏸ 暫停';
         loop();
+    }
+
+    function pausePlayback() {
+        if (!playing) return;
+        paused = !paused;
+        if (paused) {
+            pauseBtn.textContent = '▶ 繼續';
+            if (animTimer) {
+                clearTimeout(animTimer);
+                animTimer = null;
+            }
+        } else {
+            pauseBtn.textContent = '⏸ 暫停';
+            loop();
+        }
     }
 
     playBtn.addEventListener('click', () => {
         if (fullData.length > 0) startPlayback();
     });
+
+    pauseBtn.addEventListener('click', pausePlayback);
 
     marketSelect.addEventListener('change', updateStockList);
     stockSelect.addEventListener('change', loadStock);
@@ -466,7 +573,10 @@
         ctx.fillStyle = grad;
         ctx.fill();
 
+        // 最新點的座標
         const lastY = canvas.height - ((data[data.length - 1].close - minPrice) / priceRange) * canvas.height;
+
+        // 發光圓點
         ctx.beginPath();
         ctx.arc(lastX, lastY, 5, 0, 2 * Math.PI);
         ctx.fillStyle = '#ffffff';
@@ -475,7 +585,43 @@
         ctx.fill();
         ctx.shadowBlur = 0;
 
+        // ====== 動態顯示當前點的日期（年月日）======
         const last = data[data.length - 1];
+        const dateText = last.date;   // 格式：YYYY-MM-DD
+
+        // 測量文字寬度
+        ctx.font = '12px monospace';
+        const textWidth = ctx.measureText(dateText).width;
+        const boxPadding = 6;
+        const boxWidth = textWidth + boxPadding * 2;
+        const boxHeight = 20;
+
+        // 氣泡位置：預設在圓點上方，若太靠頂部則移到下方
+        let boxX = lastX - boxWidth / 2;
+        let boxY = lastY - 12 - boxHeight;
+
+        if (boxY < 4) {
+            boxY = lastY + 12;
+        }
+        // 避免超出左右邊界
+        if (boxX < 4) boxX = 4;
+        if (boxX + boxWidth > canvas.width - 4) boxX = canvas.width - boxWidth - 4;
+
+        // 繪製氣泡背景
+        ctx.fillStyle = 'rgba(31, 41, 55, 0.95)';
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 1;
+        roundRect(ctx, boxX, boxY, boxWidth, boxHeight, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        // 繪製日期文字
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(dateText, boxX + boxWidth / 2, boxY + boxHeight / 2);
+
+        // 更新價格與日期顯示
         const prev = data[data.length - 2] || last;
         const change = last.close - prev.close;
         priceDisplay.textContent = last.close.toFixed(2);
@@ -483,9 +629,24 @@
         dateDisplay.textContent = last.date;
     }
 
+    // ====== 圓角矩形輔助函式 ======
+    function roundRect(ctx, x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+    }
+
     // ====== 動畫循環 ======
     function loop() {
-        if (!playing) return;
+        if (!playing || paused) return;
 
         visibleCount += Math.max(1, Math.floor(fullData.length / 300));
 
@@ -494,12 +655,14 @@
             playing = false;
             playBtn.disabled = false;
             playBtn.textContent = '↻ 重播';
+            pauseBtn.disabled = true;
+            pauseBtn.textContent = '⏸ 暫停';
         }
 
         drawChart();
 
-        if (playing) {
-            setTimeout(() => requestAnimationFrame(loop), 30);
+        if (playing && !paused) {
+            animTimer = setTimeout(() => requestAnimationFrame(loop), frameDelay);
         }
     }
 
