@@ -18,6 +18,7 @@
             overflow-x: hidden;
         }
 
+        /* 外層容器 */
         .app-wrapper {
             display: flex;
             align-items: flex-start;
@@ -33,16 +34,20 @@
             padding: 20px;
             width: 220px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            transition: transform 0.3s ease, opacity 0.3s ease;
+            transition: transform 0.3s ease, opacity 0.3s ease, width 0.3s ease, padding 0.3s ease, margin 0.3s ease;
             flex-shrink: 0;
+            overflow: hidden;
         }
         .sidebar.collapsed {
-            transform: translateX(-260px);
+            width: 0;
+            padding: 0;
+            margin: 0;
             opacity: 0;
-            position: absolute;
+            transform: translateX(-20px);
             pointer-events: none;
         }
 
+        /* 收合按鈕 */
         .toggle-btn {
             position: fixed;
             left: 20px;
@@ -97,39 +102,6 @@
             border-color: #ef4444;
         }
 
-        /* 覆蓋範圍提示框 */
-        .coverage-box {
-            margin-top: 14px;
-            padding: 10px 12px;
-            background-color: #111827;
-            border-radius: 6px;
-            border-left: 3px solid #ef4444;
-            font-size: 12px;
-            line-height: 1.6;
-            color: #9ca3af;
-        }
-        .coverage-box .title {
-            font-weight: 600;
-            color: #d1d5db;
-            margin-bottom: 4px;
-            font-size: 12px;
-        }
-        .coverage-box ul {
-            margin: 0;
-            padding-left: 16px;
-        }
-        .coverage-box li {
-            margin-bottom: 2px;
-        }
-        .coverage-box code {
-            background-color: #1f2937;
-            padding: 1px 4px;
-            border-radius: 3px;
-            font-family: monospace;
-            color: #fbbf24;
-            font-size: 11px;
-        }
-
         /* 右側圖表區 */
         .chart-container {
             background-color: #1f2937;
@@ -137,7 +109,10 @@
             padding: 20px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             width: 800px;
-            transition: margin-left 0.3s ease;
+            transition: width 0.3s ease;
+        }
+        .chart-container.expanded {
+            width: 1040px;
         }
 
         .stock-info {
@@ -167,6 +142,7 @@
             margin-top: 2px;
         }
 
+        /* 圖表 + 右下角日期標註 */
         .canvas-wrapper {
             position: relative;
         }
@@ -191,6 +167,8 @@
             display: block;
             background-color: #111827;
             border-radius: 4px;
+            width: 100%;
+            height: auto;
         }
         .controls {
             margin-top: 12px;
@@ -218,10 +196,12 @@
 </head>
 <body>
 
+<!-- 收合/展開按鈕 -->
 <button class="toggle-btn" id="toggleBtn">☰</button>
 
 <div class="app-wrapper">
 
+    <!-- 左側控制面板 -->
     <div class="sidebar" id="sidebar">
         <h3>控制面板</h3>
 
@@ -236,17 +216,9 @@
         <select id="stockSelect">
             <option value="">載入中...</option>
         </select>
-
-        <div class="coverage-box" id="coverageBox">
-            <div class="title">📊 資料來源</div>
-            <ul>
-                <li>港股：<code>data/hk/</code></li>
-                <li>美股：<code>data/us/</code></li>
-                <li>A股：<code>data/zh/</code></li>
-            </ul>
-        </div>
     </div>
 
+    <!-- 右側圖表 -->
     <div class="chart-container" id="chartContainer">
         <div class="stock-info">
             <div>
@@ -282,6 +254,7 @@
     const stockSelect = document.getElementById('stockSelect');
     const toggleBtn = document.getElementById('toggleBtn');
     const sidebar = document.getElementById('sidebar');
+    const chartContainer = document.getElementById('chartContainer');
 
     // ====== 收合/展開控制面板 ======
     let sidebarCollapsed = false;
@@ -289,11 +262,15 @@
         sidebarCollapsed = !sidebarCollapsed;
         if (sidebarCollapsed) {
             sidebar.classList.add('collapsed');
+            chartContainer.classList.add('expanded');
             toggleBtn.textContent = '☰';
         } else {
             sidebar.classList.remove('collapsed');
+            chartContainer.classList.remove('expanded');
             toggleBtn.textContent = '✕';
         }
+        // 重新繪製圖表以適應新寬度
+        drawChart();
     });
 
     // ====== 股票清單（從 stocks.json 讀取）======
@@ -363,7 +340,6 @@
             stockSelect.appendChild(option);
         });
 
-        // 自動載入第一隻股票
         loadStock();
     }
 
