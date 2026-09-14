@@ -1,0 +1,12 @@
+{
+  "hk": [
+    { "code": "01024", "name": "快手", "file": "hk_01024.json" },
+    { "code": "00700", "name": "騰訊", "file": "hk_00700.json" }
+  ],
+  "us": [
+    { "code": "TSM", "name": "台積電 ADR", "file": "us_TSM.json" }
+  ],
+  "zh": [
+    { "code": "600519", "name": "貴州茅台", "file": "zh_600519.json" }
+  ]
+}
