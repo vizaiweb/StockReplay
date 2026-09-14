@@ -369,7 +369,7 @@
     // ====== 讀取本地 JSON ======
 async function fetchFromLocalJSON() {
     try {
-        const res = await fetch('hk_01024.json');
+        const res = await fetch('data/hk_01024.json');
         const json = await res.json();
 
         fullData = json
