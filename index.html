@@ -26,7 +26,6 @@
             transition: all 0.3s ease;
         }
 
-        /* 左側控制面板（可收合） */
         .sidebar {
             background-color: #1f2937;
             border-radius: 8px;
@@ -100,7 +99,6 @@
             border-color: #ef4444;
         }
 
-        /* 速度滑桿 */
         .speed-control {
             margin-top: 14px;
         }
@@ -149,7 +147,6 @@
             border: 2px solid #fff;
         }
 
-        /* 右側圖表區 */
         .chart-container {
             background-color: #1f2937;
             border-radius: 8px;
@@ -177,6 +174,20 @@
             font-weight: bold;
             font-family: monospace;
             transition: color 0.2s ease;
+        }
+        /* 市值顯示（取代原本的股價位置） */
+        .market-cap {
+            font-size: 20px;
+            font-weight: bold;
+            font-family: monospace;
+            color: #fbbf24;
+            text-align: right;
+        }
+        .market-cap-label {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 2px;
+            text-align: right;
         }
         .date-label {
             font-size: 14px;
@@ -246,7 +257,6 @@
 
 <div class="app-wrapper">
 
-    <!-- 左側控制面板 -->
     <div class="sidebar" id="sidebar">
         <h3>控制面板</h3>
 
@@ -262,7 +272,6 @@
             <option value="">載入中...</option>
         </select>
 
-        <!-- 速度控制 -->
         <div class="speed-control">
             <div class="speed-header">
                 <label for="speedSlider">跑動速度</label>
@@ -272,7 +281,6 @@
         </div>
     </div>
 
-    <!-- 右側圖表 -->
     <div class="chart-container" id="chartContainer">
         <div class="stock-info">
             <div>
@@ -280,7 +288,11 @@
                 <div class="date-label" id="dateLabel">—</div>
                 <div class="update-time" id="updateTime">更新時間：—</div>
             </div>
-            <div id="stockPrice" class="stock-price">—</div>
+            <!-- 這裡改成顯示市值 -->
+            <div>
+                <div class="market-cap" id="marketCap">—</div>
+                <div class="market-cap-label">市值</div>
+            </div>
         </div>
 
         <div class="canvas-wrapper">
@@ -299,11 +311,11 @@
 <script>
     const canvas = document.getElementById('stockCanvas');
     const ctx = canvas.getContext('2d');
-    const priceDisplay = document.getElementById('stockPrice');
     const nameDisplay = document.getElementById('stockName');
     const dateDisplay = document.getElementById('dateLabel');
     const updateTimeDisplay = document.getElementById('updateTime');
     const dateRangeDisplay = document.getElementById('dateRange');
+    const marketCapDisplay = document.getElementById('marketCap');
     const playBtn = document.getElementById('playBtn');
     const pauseBtn = document.getElementById('pauseBtn');
     const marketSelect = document.getElementById('marketSelect');
@@ -315,18 +327,16 @@
     const speedValue = document.getElementById('speedValue');
 
     // ====== 速度設定 ======
-    // 滑桿值 1~10，對應每幀間隔 100ms~10ms（值越大越快）
-    let frameDelay = 30;  // 預設值
+    let frameDelay = 30;
 
     function updateSpeed() {
-        const val = parseInt(speedSlider.value, 10);  // 1~10
-        // 映射：1 → 100ms，10 → 10ms
+        const val = parseInt(speedSlider.value, 10);
         frameDelay = Math.round(110 - val * 10);
         const labels = { 1:'極慢', 2:'很慢', 3:'慢', 4:'偏慢', 5:'中', 6:'偏快', 7:'快', 8:'很快', 9:'極快', 10:'閃電' };
         speedValue.textContent = labels[val] || '中';
     }
     speedSlider.addEventListener('input', updateSpeed);
-    updateSpeed();  // 初始化
+    updateSpeed();
 
     // ====== 收合/展開控制面板 ======
     let sidebarCollapsed = false;
@@ -344,7 +354,7 @@
         drawChart();
     });
 
-    // ====== 股票清單（從 stocks.json 讀取）======
+    // ====== 股票清單 ======
     let STOCK_LISTS = {};
 
     async function loadStockLists() {
@@ -364,6 +374,21 @@
     let playing = false;
     let paused = false;
     let animTimer = null;
+    let currentMarketCap = null;   // 當前股票的市值
+
+    // ====== 格式化市值（億 / 萬億）======
+    function formatMarketCap(value) {
+        if (value == null || isNaN(value)) return '—';
+        const abs = Math.abs(value);
+        if (abs >= 1e12) {
+            return (value / 1e12).toFixed(2) + ' 萬億';
+        } else if (abs >= 1e8) {
+            return (value / 1e8).toFixed(2) + ' 億';
+        } else if (abs >= 1e4) {
+            return (value / 1e4).toFixed(2) + ' 萬';
+        }
+        return value.toFixed(2);
+    }
 
     // ====== 取得北京時區時間字串 ======
     function getBeijingTime() {
@@ -431,6 +456,7 @@
         pauseBtn.disabled = true;
         nameDisplay.textContent = '載入中...';
         updateTimeDisplay.textContent = '更新時間：—';
+        marketCapDisplay.textContent = '—';
 
         const path = `data/${market}/${file}`;
 
@@ -438,20 +464,36 @@
             const res = await fetch(path);
             const json = await res.json();
 
-            fullData = json
+            // 支援兩種格式：
+            // 1. 純陣列：[{date, close}, ...]
+            // 2. 物件：{ data: [{date, close}, ...], marketCap: 123456 }
+            let records, marketCap;
+            if (Array.isArray(json)) {
+                records = json;
+                marketCap = null;
+            } else {
+                records = json.data || [];
+                marketCap = json.marketCap != null ? json.marketCap : null;
+            }
+
+            fullData = records
                 .filter(d => d.close != null)
                 .map(d => ({ date: d.date, close: d.close }));
 
             if (fullData.length === 0) throw new Error('無數據');
 
+            currentMarketCap = marketCap;
+
             nameDisplay.textContent = `${stockInfo.name} (${stockInfo.code}) 歷史走勢`;
             updateTimeDisplay.textContent = `更新時間：${getBeijingTime()}`;
+            marketCapDisplay.textContent = formatMarketCap(currentMarketCap);
             updateDateRange();
             prepareStaticView();
         } catch (err) {
             console.error('載入失敗:', err);
             nameDisplay.textContent = `載入失敗（${stockInfo.name}）`;
             updateTimeDisplay.textContent = `更新時間：${getBeijingTime()}（無數據）`;
+            marketCapDisplay.textContent = '—';
             fullData = [];
             updateDateRange();
             drawEmptyChart();
@@ -573,7 +615,6 @@
         ctx.fillStyle = grad;
         ctx.fill();
 
-        // 最新點的座標
         const lastY = canvas.height - ((data[data.length - 1].close - minPrice) / priceRange) * canvas.height;
 
         // 發光圓點
@@ -585,16 +626,26 @@
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // ====== 動態顯示當前點的日期（年月日）======
+        // ====== 動態氣泡：股價在上，日期在下 ======
         const last = data[data.length - 1];
-        const dateText = last.date;   // 格式：YYYY-MM-DD
+        const prev = data[data.length - 2] || last;
+        const change = last.close - prev.close;
+
+        const priceText = last.close.toFixed(2);
+        const dateText = last.date;
+
+        // 顏色：紅漲綠跌
+        const priceColor = change >= 0 ? '#ef4444' : '#22c55e';
 
         // 測量文字寬度
-        ctx.font = '12px monospace';
-        const textWidth = ctx.measureText(dateText).width;
-        const boxPadding = 6;
-        const boxWidth = textWidth + boxPadding * 2;
-        const boxHeight = 20;
+        ctx.font = 'bold 14px monospace';
+        const priceWidth = ctx.measureText(priceText).width;
+        ctx.font = '11px monospace';
+        const dateWidth = ctx.measureText(dateText).width;
+
+        const boxPadding = 8;
+        const boxWidth = Math.max(priceWidth, dateWidth) + boxPadding * 2;
+        const boxHeight = 40;
 
         // 氣泡位置：預設在圓點上方，若太靠頂部則移到下方
         let boxX = lastX - boxWidth / 2;
@@ -603,33 +654,34 @@
         if (boxY < 4) {
             boxY = lastY + 12;
         }
-        // 避免超出左右邊界
         if (boxX < 4) boxX = 4;
         if (boxX + boxWidth > canvas.width - 4) boxX = canvas.width - boxWidth - 4;
 
-        // 繪製氣泡背景
+        // 氣泡背景
         ctx.fillStyle = 'rgba(31, 41, 55, 0.95)';
-        ctx.strokeStyle = '#ef4444';
+        ctx.strokeStyle = priceColor;
         ctx.lineWidth = 1;
-        roundRect(ctx, boxX, boxY, boxWidth, boxHeight, 4);
+        roundRect(ctx, boxX, boxY, boxWidth, boxHeight, 5);
         ctx.fill();
         ctx.stroke();
 
-        // 繪製日期文字
-        ctx.fillStyle = '#ffffff';
+        // 股價（上方）
+        ctx.fillStyle = priceColor;
+        ctx.font = 'bold 14px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(dateText, boxX + boxWidth / 2, boxY + boxHeight / 2);
+        ctx.fillText(priceText, boxX + boxWidth / 2, boxY + 13);
 
-        // 更新價格與日期顯示
-        const prev = data[data.length - 2] || last;
-        const change = last.close - prev.close;
-        priceDisplay.textContent = last.close.toFixed(2);
-        priceDisplay.style.color = change >= 0 ? '#ef4444' : '#22c55e';
+        // 日期（下方）
+        ctx.fillStyle = '#9ca3af';
+        ctx.font = '11px monospace';
+        ctx.fillText(dateText, boxX + boxWidth / 2, boxY + 29);
+
+        // 更新左側日期標籤
         dateDisplay.textContent = last.date;
     }
 
-    // ====== 圓角矩形輔助函式 ======
+    // ====== 圓角矩形 ======
     function roundRect(ctx, x, y, width, height, radius) {
         ctx.beginPath();
         ctx.moveTo(x + radius, y);
