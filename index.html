@@ -274,7 +274,6 @@
                 <div class="date-label" id="dateLabel">—</div>
                 <div class="update-time" id="updateTime">更新時間：—</div>
             </div>
-            <!-- 右上角改回顯示股價 -->
             <div id="stockPrice" class="stock-price">—</div>
         </div>
 
@@ -309,13 +308,11 @@
     const speedSlider = document.getElementById('speedSlider');
     const speedValue = document.getElementById('speedValue');
 
-    // ====== 速度設定（整體調慢）======
-    // 滑桿值 1~10，對應每幀間隔 300ms~40ms（值越大越快）
+    // ====== 速度設定 ======
     let frameDelay = 180;
 
     function updateSpeed() {
-        const val = parseInt(speedSlider.value, 10);  // 1~10
-        // 映射：1 → 300ms，10 → 40ms（整體比之前慢）
+        const val = parseInt(speedSlider.value, 10);
         frameDelay = Math.round(340 - val * 30);
         const labels = { 1:'極慢', 2:'很慢', 3:'慢', 4:'偏慢', 5:'中', 6:'偏快', 7:'快', 8:'很快', 9:'極快', 10:'閃電' };
         speedValue.textContent = labels[val] || '中';
@@ -359,6 +356,10 @@
     let playing = false;
     let paused = false;
     let animTimer = null;
+
+    // 歷史高位/低位是否已觸碰
+    let highTouched = false;
+    let lowTouched = false;
 
     // ====== 取得北京時區時間字串 ======
     function getBeijingTime() {
@@ -428,15 +429,16 @@
         updateTimeDisplay.textContent = '更新時間：—';
         priceDisplay.textContent = '—';
 
+        // 重置觸碰狀態
+        highTouched = false;
+        lowTouched = false;
+
         const path = `data/${market}/${file}`;
 
         try {
             const res = await fetch(path);
             const json = await res.json();
 
-            // 支援兩種格式：
-            // 1. 純陣列：[{date, close}, ...]
-            // 2. 物件：{ data: [{date, close}, ...], marketCap: 123456 }
             let records;
             if (Array.isArray(json)) {
                 records = json;
@@ -469,10 +471,38 @@
     function prepareStaticView() {
         stopPlayback();
         visibleCount = fullData.length;
+
+        // 靜態視圖時，檢查是否已觸碰高低點
+        updateTouchStatus();
+
         drawChart();
         playBtn.disabled = false;
         playBtn.textContent = '▶ 播放';
         pauseBtn.disabled = true;
+    }
+
+    // ====== 檢查是否觸碰歷史高低點 ======
+    function updateTouchStatus() {
+        if (fullData.length === 0) return;
+
+        const allPrices = fullData.map(d => d.close);
+        const historicalHigh = Math.max(...allPrices);
+        const historicalLow = Math.min(...allPrices);
+
+        const visibleData = fullData.slice(0, visibleCount);
+        const visiblePrices = visibleData.map(d => d.close);
+        if (visiblePrices.length === 0) return;
+
+        const visibleHigh = Math.max(...visiblePrices);
+        const visibleLow = Math.min(...visiblePrices);
+
+        // 允許一點浮點誤差
+        if (!highTouched && visibleHigh >= historicalHigh - 1e-6) {
+            highTouched = true;
+        }
+        if (!lowTouched && visibleLow <= historicalLow + 1e-6) {
+            lowTouched = true;
+        }
     }
 
     // ====== 停止播放 ======
@@ -491,6 +521,11 @@
         visibleCount = 0;
         playing = true;
         paused = false;
+
+        // 重新播放時，重置觸碰狀態
+        highTouched = false;
+        lowTouched = false;
+
         playBtn.disabled = true;
         playBtn.textContent = '播放中...';
         pauseBtn.disabled = false;
@@ -541,12 +576,12 @@
             return;
         }
 
-        // ====== 用「完整數據」計算歷史高位和低位 ======
+        // 用完整數據算歷史高低點
         const allPrices = fullData.map(d => d.close);
         const historicalHigh = Math.max(...allPrices);
         const historicalLow = Math.min(...allPrices);
 
-        // 用可見數據做 Y 軸縮放（但確保涵蓋歷史高低點，避免跑動時線條超出）
+        // Y 軸縮放：涵蓋可見數據 + 歷史高低點
         const prices = data.map(d => d.close);
         let minPrice = Math.min(...prices, historicalLow);
         let maxPrice = Math.max(...prices, historicalHigh);
@@ -562,41 +597,43 @@
         const totalPoints = fullData.length;
         const stepX = plotWidth / (totalPoints - 1);
 
-        // ====== 畫歷史高位橫線 ======
-        const highY = canvas.height - ((historicalHigh - minPrice) / priceRange) * canvas.height;
-        ctx.beginPath();
-        ctx.setLineDash([6, 4]);
-        ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
-        ctx.lineWidth = 1;
-        ctx.moveTo(paddingLeft, highY);
-        ctx.lineTo(canvas.width - paddingRight, highY);
-        ctx.stroke();
+        // ====== 畫歷史高位橫線（只有觸碰後才顯示）======
+        if (highTouched) {
+            const highY = canvas.height - ((historicalHigh - minPrice) / priceRange) * canvas.height;
+            ctx.beginPath();
+            ctx.setLineDash([6, 4]);
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+            ctx.lineWidth = 1;
+            ctx.moveTo(paddingLeft, highY);
+            ctx.lineTo(canvas.width - paddingRight, highY);
+            ctx.stroke();
 
-        // 高位標籤
-        ctx.setLineDash([]);
-        ctx.font = 'bold 11px monospace';
-        ctx.fillStyle = '#ef4444';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(`歷史高位 ${historicalHigh.toFixed(2)}`, paddingLeft + 4, highY - 3);
+            ctx.setLineDash([]);
+            ctx.font = 'bold 11px monospace';
+            ctx.fillStyle = '#ef4444';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(`歷史高位 ${historicalHigh.toFixed(2)}`, paddingLeft + 4, highY - 3);
+        }
 
-        // ====== 畫歷史低位橫線 ======
-        const lowY = canvas.height - ((historicalLow - minPrice) / priceRange) * canvas.height;
-        ctx.beginPath();
-        ctx.setLineDash([6, 4]);
-        ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)';
-        ctx.lineWidth = 1;
-        ctx.moveTo(paddingLeft, lowY);
-        ctx.lineTo(canvas.width - paddingRight, lowY);
-        ctx.stroke();
+        // ====== 畫歷史低位橫線（只有觸碰後才顯示）======
+        if (lowTouched) {
+            const lowY = canvas.height - ((historicalLow - minPrice) / priceRange) * canvas.height;
+            ctx.beginPath();
+            ctx.setLineDash([6, 4]);
+            ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)';
+            ctx.lineWidth = 1;
+            ctx.moveTo(paddingLeft, lowY);
+            ctx.lineTo(canvas.width - paddingRight, lowY);
+            ctx.stroke();
 
-        // 低位標籤
-        ctx.setLineDash([]);
-        ctx.font = 'bold 11px monospace';
-        ctx.fillStyle = '#22c55e';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText(`歷史低位 ${historicalLow.toFixed(2)}`, paddingLeft + 4, lowY + 3);
+            ctx.setLineDash([]);
+            ctx.font = 'bold 11px monospace';
+            ctx.fillStyle = '#22c55e';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(`歷史低位 ${historicalLow.toFixed(2)}`, paddingLeft + 4, lowY + 3);
+        }
 
         // ====== 漸層 ======
         const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -635,7 +672,7 @@
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // ====== 動態氣泡：股價在上，日期在下 ======
+        // ====== 動態氣泡 ======
         const last = data[data.length - 1];
         const prev = data[data.length - 2] || last;
         const change = last.close - prev.close;
@@ -680,7 +717,7 @@
         ctx.font = '11px monospace';
         ctx.fillText(dateText, boxX + boxWidth / 2, boxY + 29);
 
-        // ====== 更新右上角股價 ======
+        // 更新右上角股價
         priceDisplay.textContent = last.close.toFixed(2);
         priceDisplay.style.color = priceColor;
 
@@ -717,6 +754,9 @@
             pauseBtn.disabled = true;
             pauseBtn.textContent = '⏸ 暫停';
         }
+
+        // 每次更新可見數據後，檢查是否觸碰高低點
+        updateTouchStatus();
 
         drawChart();
 
