@@ -2,7 +2,7 @@
   "hk": [
         { "code": "09988", "name": "阿里巴巴", "file": "hk_09988.json" },
     { "code": "01024", "name": "快手", "file": "hk_01024.json" },
-    { "code": "00700", "name": "騰訊", "file": "hk_00700.json" }
+    { "code": "00700", "name": "騰訊控股", "file": "hk_00700.json" }
   ],
   "us": [
     { "code": "TSM", "name": "台積電 ADR", "file": "us_TSM.json" }
