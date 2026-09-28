@@ -235,6 +235,25 @@
             opacity: 0.4;
             cursor: not-allowed;
         }
+
+        /* 圖例 */
+        .legend {
+            display: flex;
+            gap: 16px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .legend-color {
+            width: 16px;
+            height: 3px;
+            border-radius: 2px;
+        }
     </style>
 </head>
 <body>
@@ -278,8 +297,23 @@
         </div>
 
         <div class="canvas-wrapper">
-            <canvas id="stockCanvas" width="800" height="300"></canvas>
+            <canvas id="stockCanvas" width="800" height="400"></canvas>
             <div class="date-range" id="dateRange">—</div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background:#ef4444;"></div>
+                <span>收盤價</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background:#fbbf24;"></div>
+                <span>MA20</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background:#6b7280;"></div>
+                <span>成交量</span>
+            </div>
         </div>
 
         <div class="controls">
@@ -307,6 +341,11 @@
     const chartContainer = document.getElementById('chartContainer');
     const speedSlider = document.getElementById('speedSlider');
     const speedValue = document.getElementById('speedValue');
+
+    // ====== 圖表區域高度分配 ======
+    const PRICE_HEIGHT = 280;   // 主圖高度
+    const VOLUME_HEIGHT = 70;   // 成交量副圖高度
+    const GAP = 15;             // 主圖與副圖間距
 
     // ====== 速度設定 ======
     let frameDelay = 180;
@@ -352,12 +391,12 @@
 
     // ====== 狀態 ======
     let fullData = [];
+    let ma20Data = [];
+    let volumeData = [];
     let visibleCount = 0;
     let playing = false;
     let paused = false;
     let animTimer = null;
-
-    // 歷史高位/低位是否已觸碰
     let highTouched = false;
     let lowTouched = false;
 
@@ -429,7 +468,6 @@
         updateTimeDisplay.textContent = '更新時間：—';
         priceDisplay.textContent = '—';
 
-        // 重置觸碰狀態
         highTouched = false;
         lowTouched = false;
 
@@ -439,16 +477,23 @@
             const res = await fetch(path);
             const json = await res.json();
 
-            let records;
+            let records, ma20, volume;
             if (Array.isArray(json)) {
                 records = json;
+                ma20 = [];
+                volume = [];
             } else {
                 records = json.data || [];
+                ma20 = json.ma20 || [];
+                volume = json.volume || [];
             }
 
             fullData = records
                 .filter(d => d.close != null)
                 .map(d => ({ date: d.date, close: d.close }));
+
+            ma20Data = ma20.filter(d => d.ma20 != null);
+            volumeData = volume.filter(d => d.volume != null);
 
             if (fullData.length === 0) throw new Error('無數據');
 
@@ -462,6 +507,8 @@
             updateTimeDisplay.textContent = `更新時間：${getBeijingTime()}（無數據）`;
             priceDisplay.textContent = '—';
             fullData = [];
+            ma20Data = [];
+            volumeData = [];
             updateDateRange();
             drawEmptyChart();
         }
@@ -471,10 +518,7 @@
     function prepareStaticView() {
         stopPlayback();
         visibleCount = fullData.length;
-
-        // 靜態視圖時，檢查是否已觸碰高低點
         updateTouchStatus();
-
         drawChart();
         playBtn.disabled = false;
         playBtn.textContent = '▶ 播放';
@@ -496,13 +540,8 @@
         const visibleHigh = Math.max(...visiblePrices);
         const visibleLow = Math.min(...visiblePrices);
 
-        // 允許一點浮點誤差
-        if (!highTouched && visibleHigh >= historicalHigh - 1e-6) {
-            highTouched = true;
-        }
-        if (!lowTouched && visibleLow <= historicalLow + 1e-6) {
-            lowTouched = true;
-        }
+        if (!highTouched && visibleHigh >= historicalHigh - 1e-6) highTouched = true;
+        if (!lowTouched && visibleLow <= historicalLow + 1e-6) lowTouched = true;
     }
 
     // ====== 停止播放 ======
@@ -521,11 +560,8 @@
         visibleCount = 0;
         playing = true;
         paused = false;
-
-        // 重新播放時，重置觸碰狀態
         highTouched = false;
         lowTouched = false;
-
         playBtn.disabled = true;
         playBtn.textContent = '播放中...';
         pauseBtn.disabled = false;
@@ -576,12 +612,11 @@
             return;
         }
 
-        // 用完整數據算歷史高低點
+        // 主圖 Y 軸範圍（用完整數據算歷史高低點）
         const allPrices = fullData.map(d => d.close);
         const historicalHigh = Math.max(...allPrices);
         const historicalLow = Math.min(...allPrices);
 
-        // Y 軸縮放：涵蓋可見數據 + 歷史高低點
         const prices = data.map(d => d.close);
         let minPrice = Math.min(...prices, historicalLow);
         let maxPrice = Math.max(...prices, historicalHigh);
@@ -597,9 +632,14 @@
         const totalPoints = fullData.length;
         const stepX = plotWidth / (totalPoints - 1);
 
-        // ====== 畫歷史高位橫線（只有觸碰後才顯示）======
+        // 主圖 Y 軸映射
+        const priceToY = (price) => {
+            return PRICE_HEIGHT - ((price - minPrice) / priceRange) * PRICE_HEIGHT;
+        };
+
+        // ====== 畫歷史高位橫線（觸碰後才顯示）======
         if (highTouched) {
-            const highY = canvas.height - ((historicalHigh - minPrice) / priceRange) * canvas.height;
+            const highY = priceToY(historicalHigh);
             ctx.beginPath();
             ctx.setLineDash([6, 4]);
             ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
@@ -616,9 +656,9 @@
             ctx.fillText(`歷史高位 ${historicalHigh.toFixed(2)}`, paddingLeft + 4, highY - 3);
         }
 
-        // ====== 畫歷史低位橫線（只有觸碰後才顯示）======
+        // ====== 畫歷史低位橫線（觸碰後才顯示）======
         if (lowTouched) {
-            const lowY = canvas.height - ((historicalLow - minPrice) / priceRange) * canvas.height;
+            const lowY = priceToY(historicalLow);
             ctx.beginPath();
             ctx.setLineDash([6, 4]);
             ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)';
@@ -636,7 +676,7 @@
         }
 
         // ====== 漸層 ======
-        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        const grad = ctx.createLinearGradient(0, 0, 0, PRICE_HEIGHT);
         grad.addColorStop(0, 'rgba(239, 68, 68, 0.15)');
         grad.addColorStop(1, 'rgba(17, 24, 39, 0)');
 
@@ -649,19 +689,43 @@
 
         for (let i = 0; i < data.length; i++) {
             const x = paddingLeft + i * stepX;
-            const y = canvas.height - ((data[i].close - minPrice) / priceRange) * canvas.height;
+            const y = priceToY(data[i].close);
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         }
         ctx.stroke();
 
         const lastX = paddingLeft + (data.length - 1) * stepX;
-        ctx.lineTo(lastX, canvas.height);
-        ctx.lineTo(paddingLeft, canvas.height);
+        ctx.lineTo(lastX, PRICE_HEIGHT);
+        ctx.lineTo(paddingLeft, PRICE_HEIGHT);
         ctx.fillStyle = grad;
         ctx.fill();
 
-        const lastY = canvas.height - ((data[data.length - 1].close - minPrice) / priceRange) * canvas.height;
+        // ====== MA20 均線 ======
+        if (ma20Data.length > 0) {
+            const maMap = new Map(ma20Data.map(d => [d.date, d.ma20]));
+            ctx.beginPath();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineJoin = 'round';
+
+            let started = false;
+            for (let i = 0; i < data.length; i++) {
+                const ma = maMap.get(data[i].date);
+                if (ma == null) continue;
+                const x = paddingLeft + i * stepX;
+                const y = priceToY(ma);
+                if (!started) {
+                    ctx.moveTo(x, y);
+                    started = true;
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+        }
+
+        const lastY = priceToY(data[data.length - 1].close);
 
         // 發光圓點
         ctx.beginPath();
@@ -672,6 +736,43 @@
         ctx.fill();
         ctx.shadowBlur = 0;
 
+        // ====== 成交量副圖 ======
+        const volTop = PRICE_HEIGHT + GAP;
+        const volBottom = volTop + VOLUME_HEIGHT;
+
+        // 副圖背景
+        ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
+        ctx.fillRect(paddingLeft, volTop, plotWidth, VOLUME_HEIGHT);
+
+        if (volumeData.length > 0) {
+            const volMap = new Map(volumeData.map(d => [d.date, d.volume]));
+            const visibleVols = data.map(d => volMap.get(d.date)).filter(v => v != null && v > 0);
+            const maxVol = Math.max(...visibleVols, 1);
+
+            const barWidth = Math.max(1, stepX * 0.7);
+
+            for (let i = 0; i < data.length; i++) {
+                const vol = volMap.get(data[i].date);
+                if (vol == null || vol <= 0) continue;
+                const x = paddingLeft + i * stepX;
+                const barHeight = (vol / maxVol) * VOLUME_HEIGHT;
+                const isUp = i > 0 ? data[i].close >= data[i-1].close : true;
+                ctx.fillStyle = isUp ? 'rgba(239, 68, 68, 0.6)' : 'rgba(34, 197, 94, 0.6)';
+                ctx.fillRect(x - barWidth / 2, volBottom - barHeight, barWidth, barHeight);
+            }
+
+            // 成交量標籤
+            ctx.font = '10px monospace';
+            ctx.fillStyle = '#6b7280';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText('成交量', paddingLeft + 2, volTop + 2);
+
+            // 最大成交量標註
+            ctx.textAlign = 'right';
+            ctx.fillText(maxVol.toLocaleString(), canvas.width - paddingRight - 2, volTop + 2);
+        }
+
         // ====== 動態氣泡 ======
         const last = data[data.length - 1];
         const prev = data[data.length - 2] || last;
@@ -679,7 +780,6 @@
 
         const priceText = last.close.toFixed(2);
         const dateText = last.date;
-
         const priceColor = change >= 0 ? '#ef4444' : '#22c55e';
 
         ctx.font = 'bold 14px monospace';
@@ -694,9 +794,7 @@
         let boxX = lastX - boxWidth / 2;
         let boxY = lastY - 12 - boxHeight;
 
-        if (boxY < 4) {
-            boxY = lastY + 12;
-        }
+        if (boxY < 4) boxY = lastY + 12;
         if (boxX < 4) boxX = 4;
         if (boxX + boxWidth > canvas.width - 4) boxX = canvas.width - boxWidth - 4;
 
@@ -755,9 +853,7 @@
             pauseBtn.textContent = '⏸ 暫停';
         }
 
-        // 每次更新可見數據後，檢查是否觸碰高低點
         updateTouchStatus();
-
         drawChart();
 
         if (playing && !paused) {
