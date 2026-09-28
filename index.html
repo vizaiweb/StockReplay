@@ -189,21 +189,20 @@
         .canvas-wrapper {
             position: relative;
         }
-        .date-range {
-            position: absolute;
-            right: 8px;
-            bottom: 6px;
+                .date-range {
             font-size: 11px;
             font-family: monospace;
-            color: #6b7280;
-            background-color: rgba(17, 24, 39, 0.85);
+            color: #9ca3af;
+            background-color: rgba(31, 41, 55, 0.95);
             padding: 3px 8px;
             border-radius: 4px;
-            pointer-events: none;
             letter-spacing: 0.5px;
+            border: 1px solid rgba(75, 85, 99, 0.5);
+            margin-top: 4px;
+            display: inline-block;
         }
         .date-range span {
-            color: #9ca3af;
+            color: #6b7280;
         }
 
         canvas {
@@ -290,13 +289,16 @@
     </div>
 
     <div class="chart-container" id="chartContainer">
-        <div class="stock-info">
+                <div class="stock-info">
             <div>
                 <div class="stock-name" id="stockName">請選擇股票</div>
                 <div class="date-label" id="dateLabel">—</div>
                 <div class="update-time" id="updateTime">更新時間：—</div>
             </div>
-            <div id="stockPrice" class="stock-price">—</div>
+            <div style="text-align: right;">
+                <div id="stockPrice" class="stock-price">—</div>
+                <div class="date-range" id="dateRange">—</div>
+            </div>
         </div>
 
         <div class="canvas-wrapper">
