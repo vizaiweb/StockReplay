@@ -218,8 +218,9 @@
             display: flex;
             gap: 10px;
             align-items: center;
+            flex-wrap: wrap;
         }
-        button.play-btn, button.pause-btn {
+        button.play-btn, button.pause-btn, button.toggle-chart {
             background-color: #374151;
             color: #fff;
             border: none;
@@ -228,12 +229,15 @@
             cursor: pointer;
             font-size: 14px;
         }
-        button.play-btn:hover, button.pause-btn:hover {
+        button.play-btn:hover, button.pause-btn:hover, button.toggle-chart:hover {
             background-color: #4b5563;
         }
         button.play-btn:disabled, button.pause-btn:disabled {
             opacity: 0.4;
             cursor: not-allowed;
+        }
+        button.toggle-chart.active {
+            background-color: #ef4444;
         }
 
         /* 圖例 */
@@ -310,15 +314,13 @@
                 <div class="legend-color" style="background:#fbbf24;"></div>
                 <span>MA20</span>
             </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background:#6b7280;"></div>
-                <span>成交量</span>
-            </div>
         </div>
 
         <div class="controls">
             <button class="play-btn" id="playBtn" disabled>▶ 播放</button>
             <button class="pause-btn" id="pauseBtn" disabled>⏸ 暫停</button>
+            <button class="toggle-chart active" id="volBtn">成交量</button>
+            <button class="toggle-chart" id="obvBtn">OBV 資金流</button>
         </div>
     </div>
 
@@ -334,6 +336,8 @@
     const priceDisplay = document.getElementById('stockPrice');
     const playBtn = document.getElementById('playBtn');
     const pauseBtn = document.getElementById('pauseBtn');
+    const volBtn = document.getElementById('volBtn');
+    const obvBtn = document.getElementById('obvBtn');
     const marketSelect = document.getElementById('marketSelect');
     const stockSelect = document.getElementById('stockSelect');
     const toggleBtn = document.getElementById('toggleBtn');
@@ -343,9 +347,26 @@
     const speedValue = document.getElementById('speedValue');
 
     // ====== 圖表區域高度分配 ======
-    const PRICE_HEIGHT = 280;   // 主圖高度
-    const VOLUME_HEIGHT = 70;   // 成交量副圖高度
-    const GAP = 15;             // 主圖與副圖間距
+    const PRICE_HEIGHT = 280;
+    const VOLUME_HEIGHT = 70;
+    const GAP = 15;
+
+    // ====== 副圖顯示模式 ======
+    let subChartMode = 'volume';  // 'volume' 或 'obv'
+
+    volBtn.addEventListener('click', () => {
+        subChartMode = 'volume';
+        volBtn.classList.add('active');
+        obvBtn.classList.remove('active');
+        drawChart();
+    });
+
+    obvBtn.addEventListener('click', () => {
+        subChartMode = 'obv';
+        obvBtn.classList.add('active');
+        volBtn.classList.remove('active');
+        drawChart();
+    });
 
     // ====== 速度設定 ======
     let frameDelay = 180;
@@ -393,6 +414,7 @@
     let fullData = [];
     let ma20Data = [];
     let volumeData = [];
+    let obvData = [];
     let visibleCount = 0;
     let playing = false;
     let paused = false;
@@ -477,15 +499,17 @@
             const res = await fetch(path);
             const json = await res.json();
 
-            let records, ma20, volume;
+            let records, ma20, volume, obv;
             if (Array.isArray(json)) {
                 records = json;
                 ma20 = [];
                 volume = [];
+                obv = [];
             } else {
                 records = json.data || [];
                 ma20 = json.ma20 || [];
                 volume = json.volume || [];
+                obv = json.obv || [];
             }
 
             fullData = records
@@ -494,6 +518,7 @@
 
             ma20Data = ma20.filter(d => d.ma20 != null);
             volumeData = volume.filter(d => d.volume != null);
+            obvData = obv.filter(d => d.obv != null);
 
             if (fullData.length === 0) throw new Error('無數據');
 
@@ -509,6 +534,7 @@
             fullData = [];
             ma20Data = [];
             volumeData = [];
+            obvData = [];
             updateDateRange();
             drawEmptyChart();
         }
@@ -602,6 +628,16 @@
         ctx.fillText('請選擇股票', canvas.width / 2, canvas.height / 2);
     }
 
+    // ====== 格式化大數字 ======
+    function formatLargeNumber(num) {
+        const abs = Math.abs(num);
+        if (abs >= 1e12) return (num / 1e12).toFixed(2) + 'T';
+        if (abs >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+        if (abs >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+        if (abs >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+        return num.toString();
+    }
+
     // ====== 繪製圖表 ======
     function drawChart() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -612,7 +648,7 @@
             return;
         }
 
-        // 主圖 Y 軸範圍（用完整數據算歷史高低點）
+        // 主圖 Y 軸範圍
         const allPrices = fullData.map(d => d.close);
         const historicalHigh = Math.max(...allPrices);
         const historicalLow = Math.min(...allPrices);
@@ -632,12 +668,11 @@
         const totalPoints = fullData.length;
         const stepX = plotWidth / (totalPoints - 1);
 
-        // 主圖 Y 軸映射
         const priceToY = (price) => {
             return PRICE_HEIGHT - ((price - minPrice) / priceRange) * PRICE_HEIGHT;
         };
 
-        // ====== 畫歷史高位橫線（觸碰後才顯示）======
+        // 歷史高位橫線
         if (highTouched) {
             const highY = priceToY(historicalHigh);
             ctx.beginPath();
@@ -656,7 +691,7 @@
             ctx.fillText(`歷史高位 ${historicalHigh.toFixed(2)}`, paddingLeft + 4, highY - 3);
         }
 
-        // ====== 畫歷史低位橫線（觸碰後才顯示）======
+        // 歷史低位橫線
         if (lowTouched) {
             const lowY = priceToY(historicalLow);
             ctx.beginPath();
@@ -675,12 +710,12 @@
             ctx.fillText(`歷史低位 ${historicalLow.toFixed(2)}`, paddingLeft + 4, lowY + 3);
         }
 
-        // ====== 漸層 ======
+        // 漸層
         const grad = ctx.createLinearGradient(0, 0, 0, PRICE_HEIGHT);
         grad.addColorStop(0, 'rgba(239, 68, 68, 0.15)');
         grad.addColorStop(1, 'rgba(17, 24, 39, 0)');
 
-        // ====== 折線 ======
+        // 折線
         ctx.beginPath();
         ctx.lineWidth = 2;
         ctx.strokeStyle = '#ef4444';
@@ -701,7 +736,7 @@
         ctx.fillStyle = grad;
         ctx.fill();
 
-        // ====== MA20 均線 ======
+        // MA20 均線
         if (ma20Data.length > 0) {
             const maMap = new Map(ma20Data.map(d => [d.date, d.ma20]));
             ctx.beginPath();
@@ -736,15 +771,15 @@
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // ====== 成交量副圖 ======
+        // ====== 副圖區域 ======
         const volTop = PRICE_HEIGHT + GAP;
         const volBottom = volTop + VOLUME_HEIGHT;
 
-        // 副圖背景
         ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
         ctx.fillRect(paddingLeft, volTop, plotWidth, VOLUME_HEIGHT);
 
-        if (volumeData.length > 0) {
+        if (subChartMode === 'volume' && volumeData.length > 0) {
+            // 成交量柱狀圖
             const volMap = new Map(volumeData.map(d => [d.date, d.volume]));
             const visibleVols = data.map(d => volMap.get(d.date)).filter(v => v != null && v > 0);
             const maxVol = Math.max(...visibleVols, 1);
@@ -761,16 +796,88 @@
                 ctx.fillRect(x - barWidth / 2, volBottom - barHeight, barWidth, barHeight);
             }
 
-            // 成交量標籤
             ctx.font = '10px monospace';
             ctx.fillStyle = '#6b7280';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
             ctx.fillText('成交量', paddingLeft + 2, volTop + 2);
 
-            // 最大成交量標註
             ctx.textAlign = 'right';
-            ctx.fillText(maxVol.toLocaleString(), canvas.width - paddingRight - 2, volTop + 2);
+            ctx.fillText(formatLargeNumber(maxVol), canvas.width - paddingRight - 2, volTop + 2);
+        } else if (subChartMode === 'obv' && obvData.length > 0) {
+            // OBV 曲線
+            const obvMap = new Map(obvData.map(d => [d.date, d.obv]));
+            const visibleObvs = data.map(d => obvMap.get(d.date)).filter(v => v != null);
+            if (visibleObvs.length === 0) return;
+
+            const minObv = Math.min(...visibleObvs);
+            const maxObv = Math.max(...visibleObvs);
+            const obvRange = maxObv - minObv || 1;
+
+            const obvToY = (obv) => {
+                return volBottom - ((obv - minObv) / obvRange) * VOLUME_HEIGHT;
+            };
+
+            // 零線（如果範圍跨越 0）
+            if (minObv < 0 && maxObv > 0) {
+                const zeroY = obvToY(0);
+                ctx.beginPath();
+                ctx.setLineDash([4, 4]);
+                ctx.strokeStyle = 'rgba(156, 163, 175, 0.4)';
+                ctx.lineWidth = 1;
+                ctx.moveTo(paddingLeft, zeroY);
+                ctx.lineTo(canvas.width - paddingRight, zeroY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // OBV 曲線
+            ctx.beginPath();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#60a5fa';
+            ctx.lineJoin = 'round';
+
+            let started = false;
+            let lastObvX = paddingLeft;
+            let lastObvY = volBottom;
+
+            for (let i = 0; i < data.length; i++) {
+                const obv = obvMap.get(data[i].date);
+                if (obv == null) continue;
+                const x = paddingLeft + i * stepX;
+                const y = obvToY(obv);
+                if (!started) {
+                    ctx.moveTo(x, y);
+                    started = true;
+                } else {
+                    ctx.lineTo(x, y);
+                }
+                lastObvX = x;
+                lastObvY = y;
+            }
+            ctx.stroke();
+
+            // OBV 最新點
+            if (started) {
+                ctx.beginPath();
+                ctx.arc(lastObvX, lastObvY, 3, 0, 2 * Math.PI);
+                ctx.fillStyle = '#60a5fa';
+                ctx.fill();
+            }
+
+            // 標籤
+            ctx.font = '10px monospace';
+            ctx.fillStyle = '#6b7280';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText('OBV 資金流', paddingLeft + 2, volTop + 2);
+
+            ctx.textAlign = 'right';
+            const lastObvValue = obvMap.get(data[data.length - 1].date);
+            if (lastObvValue != null) {
+                ctx.fillStyle = lastObvValue >= 0 ? '#ef4444' : '#22c55e';
+                ctx.fillText(formatLargeNumber(lastObvValue), canvas.width - paddingRight - 2, volTop + 2);
+            }
         }
 
         // ====== 動態氣泡 ======
