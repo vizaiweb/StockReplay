@@ -240,7 +240,6 @@
             background-color: #ef4444;
         }
 
-        /* 圖例 */
         .legend {
             display: flex;
             gap: 16px;
@@ -301,7 +300,7 @@
         </div>
 
         <div class="canvas-wrapper">
-            <canvas id="stockCanvas" width="800" height="400"></canvas>
+            <canvas id="stockCanvas" width="800" height="430"></canvas>
             <div class="date-range" id="dateRange">—</div>
         </div>
 
@@ -350,9 +349,10 @@
     const PRICE_HEIGHT = 280;
     const VOLUME_HEIGHT = 70;
     const GAP = 15;
+    const TIME_AXIS_HEIGHT = 30;   // 時間軸高度
 
     // ====== 副圖顯示模式 ======
-    let subChartMode = 'volume';  // 'volume' 或 'obv'
+    let subChartMode = 'volume';
 
     volBtn.addEventListener('click', () => {
         subChartMode = 'volume';
@@ -638,6 +638,69 @@
         return num.toString();
     }
 
+        // ====== 繪製時間軸（年份變化時標年份，年份不變時只標月份）======
+    function drawTimeAxis(paddingLeft, plotWidth, stepX, totalPoints) {
+        const axisY = canvas.height - TIME_AXIS_HEIGHT;
+
+        // 時間軸基線
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(75, 85, 99, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.moveTo(paddingLeft, axisY);
+        ctx.lineTo(canvas.width - 20, axisY);
+        ctx.stroke();
+
+        // 找出所有需要標註的日期（每 3 個月）
+        let lastLabeledMonth = null;
+        let lastYear = null;
+        const labeledDates = [];
+
+        for (let i = 0; i < totalPoints; i++) {
+            const dateStr = fullData[i].date;
+            const [year, month] = dateStr.split('-');
+            const monthKey = `${year}-${month}`;
+
+            const monthNum = parseInt(month, 10);
+            if (monthNum % 3 === 1 && monthKey !== lastLabeledMonth) {
+                labeledDates.push({ index: i, year, month });
+                lastLabeledMonth = monthKey;
+            }
+        }
+
+        // 繪製刻度與標籤
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+
+        labeledDates.forEach(({ index, year, month }) => {
+            const x = paddingLeft + index * stepX;
+
+            if (x < paddingLeft + 15 || x > canvas.width - 25) return;
+
+            // 刻度線
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(75, 85, 99, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.moveTo(x, axisY);
+            ctx.lineTo(x, axisY + 4);
+            ctx.stroke();
+
+            // 決定標籤內容
+            let label;
+            if (lastYear === null || year !== lastYear) {
+                // 年份變化（或第一次）→ 顯示年份
+                label = year;
+                lastYear = year;
+            } else {
+                // 年份不變 → 只顯示月份
+                label = month;
+            }
+
+            ctx.fillStyle = '#6b7280';
+            ctx.fillText(label, x, axisY + 6);
+        });
+    }
+
     // ====== 繪製圖表 ======
     function drawChart() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -779,7 +842,6 @@
         ctx.fillRect(paddingLeft, volTop, plotWidth, VOLUME_HEIGHT);
 
         if (subChartMode === 'volume' && volumeData.length > 0) {
-            // 成交量柱狀圖
             const volMap = new Map(volumeData.map(d => [d.date, d.volume]));
             const visibleVols = data.map(d => volMap.get(d.date)).filter(v => v != null && v > 0);
             const maxVol = Math.max(...visibleVols, 1);
@@ -805,7 +867,6 @@
             ctx.textAlign = 'right';
             ctx.fillText(formatLargeNumber(maxVol), canvas.width - paddingRight - 2, volTop + 2);
         } else if (subChartMode === 'obv' && obvData.length > 0) {
-            // OBV 曲線
             const obvMap = new Map(obvData.map(d => [d.date, d.obv]));
             const visibleObvs = data.map(d => obvMap.get(d.date)).filter(v => v != null);
             if (visibleObvs.length === 0) return;
@@ -818,7 +879,6 @@
                 return volBottom - ((obv - minObv) / obvRange) * VOLUME_HEIGHT;
             };
 
-            // 零線（如果範圍跨越 0）
             if (minObv < 0 && maxObv > 0) {
                 const zeroY = obvToY(0);
                 ctx.beginPath();
@@ -831,7 +891,6 @@
                 ctx.setLineDash([]);
             }
 
-            // OBV 曲線
             ctx.beginPath();
             ctx.lineWidth = 1.5;
             ctx.strokeStyle = '#60a5fa';
@@ -857,7 +916,6 @@
             }
             ctx.stroke();
 
-            // OBV 最新點
             if (started) {
                 ctx.beginPath();
                 ctx.arc(lastObvX, lastObvY, 3, 0, 2 * Math.PI);
@@ -865,7 +923,6 @@
                 ctx.fill();
             }
 
-            // 標籤
             ctx.font = '10px monospace';
             ctx.fillStyle = '#6b7280';
             ctx.textAlign = 'left';
@@ -879,6 +936,9 @@
                 ctx.fillText(formatLargeNumber(lastObvValue), canvas.width - paddingRight - 2, volTop + 2);
             }
         }
+
+        // ====== 時間軸 ======
+        drawTimeAxis(paddingLeft, plotWidth, stepX, totalPoints);
 
         // ====== 動態氣泡 ======
         const last = data[data.length - 1];
