@@ -26,7 +26,6 @@
             transition: all 0.3s ease;
         }
 
-        /* 左側控制面板 */
         .sidebar {
             background-color: #1f2937;
             border-radius: 8px;
@@ -148,7 +147,6 @@
             border: 2px solid #fff;
         }
 
-        /* 中間圖表 */
         .chart-container {
             background-color: #1f2937;
             border-radius: 8px;
@@ -527,6 +525,9 @@
     let lowTouched = false;
     let activeEventIndex = -1;
 
+    // 已顯示的事件索引集合（跑動時逐步顯示）
+    let revealedEvents = new Set();
+
     // ====== 取得北京時區時間字串 ======
     function getBeijingTime() {
         const now = new Date();
@@ -556,13 +557,32 @@
         dateRangeDisplay.innerHTML = `<span>區間：</span>${firstDate} → ${lastDate}`;
     }
 
-    // ====== 渲染事件列表 ======
+    // ====== 渲染事件列表（只顯示已揭露的事件）======
     function renderEventList() {
         eventList.innerHTML = '';
-        eventsData.forEach((ev, idx) => {
+
+        if (eventsData.length === 0) {
+            eventList.innerHTML = '<div style="color:#6b7280;font-size:12px;">暫無事件資料</div>';
+            return;
+        }
+
+        // 按索引排序，只顯示已揭露的
+        const sortedIndexes = [...revealedEvents].sort((a, b) => a - b);
+
+        if (sortedIndexes.length === 0) {
+            eventList.innerHTML = '<div style="color:#6b7280;font-size:12px;">播放動畫後，事件將隨時間點顯示</div>';
+            return;
+        }
+
+        sortedIndexes.forEach(idx => {
+            const ev = eventsData[idx];
+            if (!ev) return;
+
             const div = document.createElement('div');
             div.className = 'event-item';
             div.dataset.index = idx;
+            if (idx === activeEventIndex) div.classList.add('active');
+
             div.innerHTML = `
                 <div class="event-date">${ev.date}</div>
                 <div class="event-title">${ev.event}</div>
@@ -577,25 +597,21 @@
 
     // ====== 高亮某個事件 ======
     function highlightEvent(idx) {
+        activeEventIndex = idx;
         const items = eventList.querySelectorAll('.event-item');
-        items.forEach((item, i) => {
-            if (i === idx) {
+        items.forEach(item => {
+            if (parseInt(item.dataset.index, 10) === idx) {
                 item.classList.add('active');
+                item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             } else {
                 item.classList.remove('active');
             }
         });
-        // 滾動到可見位置
-        if (items[idx]) {
-            items[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
     }
 
-    // ====== 點擊事件：跳轉到對應日期（靜態）======
+    // ====== 點擊事件：圓點和方框跳到該日期，但曲線保持完整 ======
     function jumpToEvent(idx) {
-        // 只有在非播放狀態下才能跳轉
         if (playing) return;
-
         const ev = eventsData[idx];
         if (!ev) return;
 
@@ -603,15 +619,11 @@
         const targetIndex = fullData.findIndex(d => d.date >= ev.date);
         if (targetIndex < 0) return;
 
-        activeEventIndex = idx;
-        visibleCount = targetIndex + 1;
+        // 關鍵：不要改 visibleCount，保持曲線完整
+        // 只設定一個「游標位置」來繪製圓點和方框
+        cursorIndex = targetIndex;
 
-        // 更新高低點觸碰狀態
-        highTouched = false;
-        lowTouched = false;
-        updateTouchStatus();
-
-        // 重繪（保持靜態）
+        // 重繪（曲線保持完整，圓點跳到指定位置）
         drawChart();
         highlightEvent(idx);
     }
@@ -658,6 +670,8 @@
         highTouched = false;
         lowTouched = false;
         activeEventIndex = -1;
+        revealedEvents = new Set();
+        cursorIndex = -1;
 
         const path = `data/${market}/${file}`;
 
@@ -692,9 +706,8 @@
             updateTimeDisplay.textContent = `更新時間：${getBeijingTime()}`;
             updateDateRange();
 
-            // 載入事件資料
             await loadEvents(market, file);
-
+            renderEventList();
             prepareStaticView();
         } catch (err) {
             console.error('載入失敗:', err);
@@ -706,6 +719,7 @@
             volumeData = [];
             obvData = [];
             eventsData = [];
+            revealedEvents = new Set();
             renderEventList();
             updateDateRange();
             drawEmptyChart();
@@ -714,7 +728,6 @@
 
     // ====== 載入事件資料 ======
     async function loadEvents(market, file) {
-        // 事件檔名規則：events_ + 股票檔名
         const eventFile = file.replace(/^/, 'events_');
         const eventPath = `data/${market}/${eventFile}`;
 
@@ -722,11 +735,9 @@
             const res = await fetch(eventPath);
             if (!res.ok) throw new Error('事件檔不存在');
             eventsData = await res.json();
-            renderEventList();
         } catch (err) {
             console.warn('事件資料載入失敗:', err);
             eventsData = [];
-            renderEventList();
         }
     }
 
@@ -734,6 +745,7 @@
     function prepareStaticView() {
         stopPlayback();
         visibleCount = fullData.length;
+        cursorIndex = fullData.length - 1;   // 游標在最後一點
         updateTouchStatus();
         drawChart();
         playBtn.disabled = false;
@@ -774,12 +786,14 @@
     function startPlayback() {
         stopPlayback();
         visibleCount = 0;
+        cursorIndex = -1;
         playing = true;
         paused = false;
         highTouched = false;
         lowTouched = false;
         activeEventIndex = -1;
-        highlightEvent(-1);
+        revealedEvents = new Set();
+        renderEventList();
 
         playBtn.disabled = true;
         playBtn.textContent = '播放中...';
@@ -864,7 +878,6 @@
 
         labeledDates.forEach(({ index, year, month }) => {
             const x = paddingLeft + index * stepX;
-
             if (x < paddingLeft + 15 || x > canvas.width - 25) return;
 
             ctx.beginPath();
@@ -887,18 +900,19 @@
         });
     }
 
-    // ====== 繪製事件標記（在時間軸上）======
+    // ====== 繪製事件標記（只畫已揭露的事件）======
     function drawEventMarkers(paddingLeft, stepX) {
-        eventsData.forEach((ev, idx) => {
+        revealedEvents.forEach(idx => {
+            const ev = eventsData[idx];
+            if (!ev) return;
+
             const eventIndex = fullData.findIndex(d => d.date >= ev.date);
             if (eventIndex < 0) return;
-            // 只有當事件日期已經在可見範圍內才畫
-            if (eventIndex >= visibleCount) return;
+            if (eventIndex >= visibleCount && cursorIndex < eventIndex) return;
 
             const x = paddingLeft + eventIndex * stepX;
-
-            // 在時間軸上畫一個小三角形標記
             const axisY = canvas.height - TIME_AXIS_HEIGHT;
+
             ctx.beginPath();
             ctx.fillStyle = idx === activeEventIndex ? '#ef4444' : '#fbbf24';
             ctx.moveTo(x, axisY - 2);
@@ -1030,11 +1044,20 @@
             ctx.stroke();
         }
 
-        const lastY = priceToY(data[data.length - 1].close);
+        // ====== 圓點和方框：位置由 cursorIndex 決定 ======
+        let cursorPos = cursorIndex;
+        if (cursorPos < 0 || cursorPos >= visibleCount) {
+            cursorPos = visibleCount - 1;   // 預設在曲線末端
+        }
+        if (cursorPos < 0) cursorPos = 0;
+
+        const cursorData = fullData[cursorPos];
+        const cursorX = paddingLeft + cursorPos * stepX;
+        const cursorY = priceToY(cursorData.close);
 
         // 發光圓點
         ctx.beginPath();
-        ctx.arc(lastX, lastY, 5, 0, 2 * Math.PI);
+        ctx.arc(cursorX, cursorY, 5, 0, 2 * Math.PI);
         ctx.fillStyle = '#ffffff';
         ctx.shadowBlur = 10;
         ctx.shadowColor = '#ef4444';
@@ -1150,14 +1173,13 @@
         // 事件標記
         drawEventMarkers(paddingLeft, stepX);
 
-        // 動態氣泡
-        const last = data[data.length - 1];
-        const prev = data[data.length - 2] || last;
-        const change = last.close - prev.close;
+        // ====== 動態氣泡（位置由 cursorPos 決定）======
+        const cursorPrev = cursorPos > 0 ? fullData[cursorPos - 1] : cursorData;
+        const cursorChange = cursorData.close - cursorPrev.close;
 
-        const priceText = last.close.toFixed(2);
-        const dateText = last.date;
-        const priceColor = change >= 0 ? '#ef4444' : '#22c55e';
+        const priceText = cursorData.close.toFixed(2);
+        const dateText = cursorData.date;
+        const priceColor = cursorChange >= 0 ? '#ef4444' : '#22c55e';
 
         ctx.font = 'bold 14px monospace';
         const priceWidth = ctx.measureText(priceText).width;
@@ -1168,10 +1190,10 @@
         const boxWidth = Math.max(priceWidth, dateWidth) + boxPadding * 2;
         const boxHeight = 40;
 
-        let boxX = lastX - boxWidth / 2;
-        let boxY = lastY - 12 - boxHeight;
+        let boxX = cursorX - boxWidth / 2;
+        let boxY = cursorY - 12 - boxHeight;
 
-        if (boxY < 4) boxY = lastY + 12;
+        if (boxY < 4) boxY = cursorY + 12;
         if (boxX < 4) boxX = 4;
         if (boxX + boxWidth > canvas.width - 4) boxX = canvas.width - boxWidth - 4;
 
@@ -1193,11 +1215,11 @@
         ctx.fillText(dateText, boxX + boxWidth / 2, boxY + 29);
 
         // 更新右上角股價
-        priceDisplay.textContent = last.close.toFixed(2);
+        priceDisplay.textContent = cursorData.close.toFixed(2);
         priceDisplay.style.color = priceColor;
 
         // 更新左側日期標籤
-        dateDisplay.textContent = last.date;
+        dateDisplay.textContent = cursorData.date;
     }
 
     // ====== 圓角矩形 ======
@@ -1215,26 +1237,28 @@
         ctx.closePath();
     }
 
-    // ====== 檢查並觸發事件（跑動時）======
+    // ====== 檢查並揭露事件（跑動時）======
     function checkEventTrigger() {
         if (fullData.length === 0 || eventsData.length === 0) return;
 
         const currentDate = fullData[visibleCount - 1]?.date;
         if (!currentDate) return;
 
-        // 找出當前日期對應的事件（最後一個日期 <= 當前日期）
-        let matchIdx = -1;
+        // 找出所有日期 <= 當前日期、且尚未揭露的事件
+        let newlyRevealed = false;
         for (let i = 0; i < eventsData.length; i++) {
-            if (eventsData[i].date <= currentDate) {
-                matchIdx = i;
-            } else {
-                break;
+            if (eventsData[i].date <= currentDate && !revealedEvents.has(i)) {
+                revealedEvents.add(i);
+                newlyRevealed = true;
             }
         }
 
-        if (matchIdx >= 0 && matchIdx !== activeEventIndex) {
-            activeEventIndex = matchIdx;
-            highlightEvent(matchIdx);
+        if (newlyRevealed) {
+            // 重新渲染事件列表
+            renderEventList();
+            // 高亮最新揭露的事件
+            const maxIdx = Math.max(...revealedEvents);
+            highlightEvent(maxIdx);
         }
     }
 
@@ -1251,6 +1275,11 @@
             playBtn.textContent = '↻ 重播';
             pauseBtn.disabled = true;
             pauseBtn.textContent = '⏸ 暫停';
+            // 跑完後，游標停在最後一點
+            cursorIndex = fullData.length - 1;
+        } else {
+            // 跑動時游標跟著曲線末端
+            cursorIndex = visibleCount - 1;
         }
 
         updateTouchStatus();
