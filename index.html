@@ -26,6 +26,7 @@
             transition: all 0.3s ease;
         }
 
+        /* 左側控制面板 */
         .sidebar {
             background-color: #1f2937;
             border-radius: 8px;
@@ -147,6 +148,7 @@
             border: 2px solid #fff;
         }
 
+        /* 中間圖表 */
         .chart-container {
             background-color: #1f2937;
             border-radius: 8px;
@@ -189,7 +191,7 @@
         .canvas-wrapper {
             position: relative;
         }
-                .date-range {
+        .date-range {
             font-size: 11px;
             font-family: monospace;
             color: #9ca3af;
@@ -256,11 +258,91 @@
             height: 3px;
             border-radius: 2px;
         }
+
+        /* ====== 右側事件面板 ====== */
+        .event-panel {
+            background-color: #1f2937;
+            border-radius: 8px;
+            padding: 0;
+            width: 0;
+            opacity: 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: width 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+            flex-shrink: 0;
+            overflow: hidden;
+            max-height: 700px;
+        }
+        .event-panel.open {
+            width: 320px;
+            padding: 20px;
+            opacity: 1;
+            overflow-y: auto;
+        }
+        .event-panel h3 {
+            margin: 0 0 12px 0;
+            font-size: 15px;
+            color: #9ca3af;
+            font-weight: 600;
+        }
+        .event-item {
+            background-color: #111827;
+            border-left: 3px solid #4b5563;
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .event-item:hover {
+            background-color: #1a2233;
+            border-left-color: #6b7280;
+        }
+        .event-item.active {
+            border-left-color: #ef4444;
+            background-color: #1a2233;
+            box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3);
+        }
+        .event-item .event-date {
+            font-size: 12px;
+            font-family: monospace;
+            color: #fbbf24;
+            margin-bottom: 4px;
+        }
+        .event-item .event-title {
+            font-size: 13px;
+            color: #e5e7eb;
+            line-height: 1.5;
+            margin-bottom: 4px;
+        }
+        .event-item .event-reaction {
+            font-size: 12px;
+            color: #9ca3af;
+            line-height: 1.5;
+        }
+
+        .event-toggle-btn {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            z-index: 100;
+            background-color: #374151;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .event-toggle-btn:hover {
+            background-color: #4b5563;
+        }
     </style>
 </head>
 <body>
 
 <button class="toggle-btn" id="toggleBtn">☰</button>
+<button class="event-toggle-btn" id="eventToggleBtn">📰 事件</button>
 
 <div class="app-wrapper">
 
@@ -289,7 +371,7 @@
     </div>
 
     <div class="chart-container" id="chartContainer">
-                <div class="stock-info">
+        <div class="stock-info">
             <div>
                 <div class="stock-name" id="stockName">請選擇股票</div>
                 <div class="date-label" id="dateLabel">—</div>
@@ -303,7 +385,6 @@
 
         <div class="canvas-wrapper">
             <canvas id="stockCanvas" width="800" height="430"></canvas>
-            <div class="date-range" id="dateRange">—</div>
         </div>
 
         <div class="legend">
@@ -323,6 +404,12 @@
             <button class="toggle-chart active" id="volBtn">成交量</button>
             <button class="toggle-chart" id="obvBtn">OBV 資金流</button>
         </div>
+    </div>
+
+    <!-- 右側事件面板 -->
+    <div class="event-panel" id="eventPanel">
+        <h3>📰 重大事件</h3>
+        <div id="eventList"></div>
     </div>
 
 </div>
@@ -346,12 +433,15 @@
     const chartContainer = document.getElementById('chartContainer');
     const speedSlider = document.getElementById('speedSlider');
     const speedValue = document.getElementById('speedValue');
+    const eventPanel = document.getElementById('eventPanel');
+    const eventList = document.getElementById('eventList');
+    const eventToggleBtn = document.getElementById('eventToggleBtn');
 
     // ====== 圖表區域高度分配 ======
     const PRICE_HEIGHT = 280;
     const VOLUME_HEIGHT = 70;
     const GAP = 15;
-    const TIME_AXIS_HEIGHT = 30;   // 時間軸高度
+    const TIME_AXIS_HEIGHT = 30;
 
     // ====== 副圖顯示模式 ======
     let subChartMode = 'volume';
@@ -382,7 +472,7 @@
     speedSlider.addEventListener('input', updateSpeed);
     updateSpeed();
 
-    // ====== 收合/展開控制面板 ======
+    // ====== 收合/展開左側控制面板 ======
     let sidebarCollapsed = false;
     toggleBtn.addEventListener('click', () => {
         sidebarCollapsed = !sidebarCollapsed;
@@ -396,6 +486,17 @@
             toggleBtn.textContent = '✕';
         }
         drawChart();
+    });
+
+    // ====== 收合/展開右側事件面板 ======
+    let eventPanelOpen = false;
+    eventToggleBtn.addEventListener('click', () => {
+        eventPanelOpen = !eventPanelOpen;
+        if (eventPanelOpen) {
+            eventPanel.classList.add('open');
+        } else {
+            eventPanel.classList.remove('open');
+        }
     });
 
     // ====== 股票清單 ======
@@ -417,12 +518,14 @@
     let ma20Data = [];
     let volumeData = [];
     let obvData = [];
+    let eventsData = [];
     let visibleCount = 0;
     let playing = false;
     let paused = false;
     let animTimer = null;
     let highTouched = false;
     let lowTouched = false;
+    let activeEventIndex = -1;
 
     // ====== 取得北京時區時間字串 ======
     function getBeijingTime() {
@@ -442,7 +545,7 @@
         return `${get('year')}/${get('month')}/${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
     }
 
-    // ====== 更新右下角日期範圍 ======
+    // ====== 更新日期範圍 ======
     function updateDateRange() {
         if (fullData.length === 0) {
             dateRangeDisplay.textContent = '—';
@@ -451,6 +554,66 @@
         const firstDate = fullData[0].date;
         const lastDate = fullData[fullData.length - 1].date;
         dateRangeDisplay.innerHTML = `<span>區間：</span>${firstDate} → ${lastDate}`;
+    }
+
+    // ====== 渲染事件列表 ======
+    function renderEventList() {
+        eventList.innerHTML = '';
+        eventsData.forEach((ev, idx) => {
+            const div = document.createElement('div');
+            div.className = 'event-item';
+            div.dataset.index = idx;
+            div.innerHTML = `
+                <div class="event-date">${ev.date}</div>
+                <div class="event-title">${ev.event}</div>
+                <div class="event-reaction">${ev.reaction}</div>
+            `;
+            div.addEventListener('click', () => {
+                jumpToEvent(idx);
+            });
+            eventList.appendChild(div);
+        });
+    }
+
+    // ====== 高亮某個事件 ======
+    function highlightEvent(idx) {
+        const items = eventList.querySelectorAll('.event-item');
+        items.forEach((item, i) => {
+            if (i === idx) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+        // 滾動到可見位置
+        if (items[idx]) {
+            items[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    // ====== 點擊事件：跳轉到對應日期（靜態）======
+    function jumpToEvent(idx) {
+        // 只有在非播放狀態下才能跳轉
+        if (playing) return;
+
+        const ev = eventsData[idx];
+        if (!ev) return;
+
+        // 找到該事件日期在 fullData 中的索引
+        const targetIndex = fullData.findIndex(d => d.date >= ev.date);
+        if (targetIndex < 0) return;
+
+        activeEventIndex = idx;
+        visibleCount = targetIndex + 1;
+
+        // 更新高低點觸碰狀態
+        highTouched = false;
+        lowTouched = false;
+        updateTouchStatus();
+
+        // 重繪（保持靜態）
+        drawChart();
+        highlightEvent(idx);
     }
 
     // ====== 更新股票下拉選單 ======
@@ -494,6 +657,7 @@
 
         highTouched = false;
         lowTouched = false;
+        activeEventIndex = -1;
 
         const path = `data/${market}/${file}`;
 
@@ -527,6 +691,10 @@
             nameDisplay.textContent = `${stockInfo.name} (${stockInfo.code}) 歷史走勢`;
             updateTimeDisplay.textContent = `更新時間：${getBeijingTime()}`;
             updateDateRange();
+
+            // 載入事件資料
+            await loadEvents(market, file);
+
             prepareStaticView();
         } catch (err) {
             console.error('載入失敗:', err);
@@ -537,8 +705,28 @@
             ma20Data = [];
             volumeData = [];
             obvData = [];
+            eventsData = [];
+            renderEventList();
             updateDateRange();
             drawEmptyChart();
+        }
+    }
+
+    // ====== 載入事件資料 ======
+    async function loadEvents(market, file) {
+        // 事件檔名規則：events_ + 股票檔名
+        const eventFile = file.replace(/^/, 'events_');
+        const eventPath = `data/${market}/${eventFile}`;
+
+        try {
+            const res = await fetch(eventPath);
+            if (!res.ok) throw new Error('事件檔不存在');
+            eventsData = await res.json();
+            renderEventList();
+        } catch (err) {
+            console.warn('事件資料載入失敗:', err);
+            eventsData = [];
+            renderEventList();
         }
     }
 
@@ -590,6 +778,9 @@
         paused = false;
         highTouched = false;
         lowTouched = false;
+        activeEventIndex = -1;
+        highlightEvent(-1);
+
         playBtn.disabled = true;
         playBtn.textContent = '播放中...';
         pauseBtn.disabled = false;
@@ -640,11 +831,10 @@
         return num.toString();
     }
 
-        // ====== 繪製時間軸（年份變化時標年份，年份不變時只標月份）======
+    // ====== 繪製時間軸 ======
     function drawTimeAxis(paddingLeft, plotWidth, stepX, totalPoints) {
         const axisY = canvas.height - TIME_AXIS_HEIGHT;
 
-        // 時間軸基線
         ctx.beginPath();
         ctx.strokeStyle = 'rgba(75, 85, 99, 0.5)';
         ctx.lineWidth = 1;
@@ -652,7 +842,6 @@
         ctx.lineTo(canvas.width - 20, axisY);
         ctx.stroke();
 
-        // 找出所有需要標註的日期（每 3 個月）
         let lastLabeledMonth = null;
         let lastYear = null;
         const labeledDates = [];
@@ -669,7 +858,6 @@
             }
         }
 
-        // 繪製刻度與標籤
         ctx.font = '10px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
@@ -679,7 +867,6 @@
 
             if (x < paddingLeft + 15 || x > canvas.width - 25) return;
 
-            // 刻度線
             ctx.beginPath();
             ctx.strokeStyle = 'rgba(75, 85, 99, 0.5)';
             ctx.lineWidth = 1;
@@ -687,19 +874,38 @@
             ctx.lineTo(x, axisY + 4);
             ctx.stroke();
 
-            // 決定標籤內容
             let label;
             if (lastYear === null || year !== lastYear) {
-                // 年份變化（或第一次）→ 顯示年份
                 label = year;
                 lastYear = year;
             } else {
-                // 年份不變 → 只顯示月份
                 label = month;
             }
 
             ctx.fillStyle = '#6b7280';
             ctx.fillText(label, x, axisY + 6);
+        });
+    }
+
+    // ====== 繪製事件標記（在時間軸上）======
+    function drawEventMarkers(paddingLeft, stepX) {
+        eventsData.forEach((ev, idx) => {
+            const eventIndex = fullData.findIndex(d => d.date >= ev.date);
+            if (eventIndex < 0) return;
+            // 只有當事件日期已經在可見範圍內才畫
+            if (eventIndex >= visibleCount) return;
+
+            const x = paddingLeft + eventIndex * stepX;
+
+            // 在時間軸上畫一個小三角形標記
+            const axisY = canvas.height - TIME_AXIS_HEIGHT;
+            ctx.beginPath();
+            ctx.fillStyle = idx === activeEventIndex ? '#ef4444' : '#fbbf24';
+            ctx.moveTo(x, axisY - 2);
+            ctx.lineTo(x - 4, axisY - 8);
+            ctx.lineTo(x + 4, axisY - 8);
+            ctx.closePath();
+            ctx.fill();
         });
     }
 
@@ -713,7 +919,6 @@
             return;
         }
 
-        // 主圖 Y 軸範圍
         const allPrices = fullData.map(d => d.close);
         const historicalHigh = Math.max(...allPrices);
         const historicalLow = Math.min(...allPrices);
@@ -836,7 +1041,7 @@
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // ====== 副圖區域 ======
+        // 副圖區域
         const volTop = PRICE_HEIGHT + GAP;
         const volBottom = volTop + VOLUME_HEIGHT;
 
@@ -939,10 +1144,13 @@
             }
         }
 
-        // ====== 時間軸 ======
+        // 時間軸
         drawTimeAxis(paddingLeft, plotWidth, stepX, totalPoints);
 
-        // ====== 動態氣泡 ======
+        // 事件標記
+        drawEventMarkers(paddingLeft, stepX);
+
+        // 動態氣泡
         const last = data[data.length - 1];
         const prev = data[data.length - 2] || last;
         const change = last.close - prev.close;
@@ -1007,6 +1215,29 @@
         ctx.closePath();
     }
 
+    // ====== 檢查並觸發事件（跑動時）======
+    function checkEventTrigger() {
+        if (fullData.length === 0 || eventsData.length === 0) return;
+
+        const currentDate = fullData[visibleCount - 1]?.date;
+        if (!currentDate) return;
+
+        // 找出當前日期對應的事件（最後一個日期 <= 當前日期）
+        let matchIdx = -1;
+        for (let i = 0; i < eventsData.length; i++) {
+            if (eventsData[i].date <= currentDate) {
+                matchIdx = i;
+            } else {
+                break;
+            }
+        }
+
+        if (matchIdx >= 0 && matchIdx !== activeEventIndex) {
+            activeEventIndex = matchIdx;
+            highlightEvent(matchIdx);
+        }
+    }
+
     // ====== 動畫循環 ======
     function loop() {
         if (!playing || paused) return;
@@ -1023,6 +1254,7 @@
         }
 
         updateTouchStatus();
+        checkEventTrigger();
         drawChart();
 
         if (playing && !paused) {
