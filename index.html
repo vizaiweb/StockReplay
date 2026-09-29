@@ -609,7 +609,7 @@
         });
     }
 
-    // ====== 點擊事件：圓點和方框跳到該日期，但曲線保持完整 ======
+        // ====== 點擊事件：圓點和方框跳到該日期，但曲線保持完整 ======
     function jumpToEvent(idx) {
         if (playing) return;
         const ev = eventsData[idx];
@@ -619,9 +619,11 @@
         const targetIndex = fullData.findIndex(d => d.date >= ev.date);
         if (targetIndex < 0) return;
 
-        // 關鍵：不要改 visibleCount，保持曲線完整
-        // 只設定一個「游標位置」來繪製圓點和方框
+        // 設定游標位置（圓點和方框跳到這裡）
         cursorIndex = targetIndex;
+
+        // 設定當前高亮的事件索引
+        activeEventIndex = idx;
 
         // 重繪（曲線保持完整，圓點跳到指定位置）
         drawChart();
@@ -900,7 +902,7 @@
         });
     }
 
-    // ====== 繪製事件標記（只畫已揭露的事件）======
+        // ====== 繪製事件標記（只畫已揭露的事件）======
     function drawEventMarkers(paddingLeft, stepX) {
         revealedEvents.forEach(idx => {
             const ev = eventsData[idx];
@@ -913,8 +915,11 @@
             const x = paddingLeft + eventIndex * stepX;
             const axisY = canvas.height - TIME_AXIS_HEIGHT;
 
+            // 用事件索引 idx 判斷是否高亮，而不是用 eventIndex
+            const isActive = idx === activeEventIndex;
+
             ctx.beginPath();
-            ctx.fillStyle = idx === activeEventIndex ? '#ef4444' : '#fbbf24';
+            ctx.fillStyle = isActive ? '#ef4444' : '#fbbf24';
             ctx.moveTo(x, axisY - 2);
             ctx.lineTo(x - 4, axisY - 8);
             ctx.lineTo(x + 4, axisY - 8);
@@ -1237,14 +1242,13 @@
         ctx.closePath();
     }
 
-    // ====== 檢查並揭露事件（跑動時）======
+        // ====== 檢查並揭露事件（跑動時）======
     function checkEventTrigger() {
         if (fullData.length === 0 || eventsData.length === 0) return;
 
         const currentDate = fullData[visibleCount - 1]?.date;
         if (!currentDate) return;
 
-        // 找出所有日期 <= 當前日期、且尚未揭露的事件
         let newlyRevealed = false;
         for (let i = 0; i < eventsData.length; i++) {
             if (eventsData[i].date <= currentDate && !revealedEvents.has(i)) {
@@ -1254,10 +1258,10 @@
         }
 
         if (newlyRevealed) {
-            // 重新渲染事件列表
             renderEventList();
-            // 高亮最新揭露的事件
+            // 高亮最新揭露的事件索引
             const maxIdx = Math.max(...revealedEvents);
+            activeEventIndex = maxIdx;   // 確保 activeEventIndex 與事件索引一致
             highlightEvent(maxIdx);
         }
     }
