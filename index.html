@@ -219,7 +219,7 @@
             align-items: center;
             flex-wrap: wrap;
         }
-        button.play-btn, button.pause-btn, button.toggle-chart {
+        button.play-btn, button.pause-btn, button.toggle-chart, button.roe-btn, button.margin-btn {
             background-color: #374151;
             color: #fff;
             border: none;
@@ -228,7 +228,7 @@
             cursor: pointer;
             font-size: 14px;
         }
-        button.play-btn:hover, button.pause-btn:hover, button.toggle-chart:hover {
+        button.play-btn:hover, button.pause-btn:hover, button.toggle-chart:hover, button.roe-btn:hover, button.margin-btn:hover {
             background-color: #4b5563;
         }
         button.play-btn:disabled, button.pause-btn:disabled {
@@ -238,20 +238,11 @@
         button.toggle-chart.active {
             background-color: #ef4444;
         }
-        button.roe-btn {
-            background-color: #374151;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 16px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        button.roe-btn:hover {
-            background-color: #4b5563;
-        }
         button.roe-btn.active {
             background-color: #8b5cf6;
+        }
+        button.margin-btn.active {
+            background-color: #22d3ee;
         }
 
         .legend {
@@ -260,6 +251,7 @@
             margin-top: 8px;
             font-size: 12px;
             color: #9ca3af;
+            flex-wrap: wrap;
         }
         .legend-item {
             display: flex;
@@ -272,7 +264,6 @@
             border-radius: 2px;
         }
 
-        /* 右側事件面板 */
         .event-panel {
             background-color: #1f2937;
             border-radius: 8px;
@@ -283,7 +274,7 @@
             transition: width 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
             flex-shrink: 0;
             overflow: hidden;
-            max-height: 800px;
+            max-height: 900px;
         }
         .event-panel.open {
             width: 320px;
@@ -397,7 +388,7 @@
         </div>
 
         <div class="canvas-wrapper">
-            <canvas id="stockCanvas" width="800" height="500"></canvas>
+            <canvas id="stockCanvas" width="800" height="580"></canvas>
         </div>
 
         <div class="legend">
@@ -413,6 +404,14 @@
                 <div class="legend-color" style="background:#8b5cf6;"></div>
                 <span>加權平均ROE</span>
             </div>
+            <div class="legend-item" id="marginLegend" style="display:none;">
+                <div class="legend-color" style="background:#60a5fa;"></div>
+                <span>毛利率</span>
+            </div>
+            <div class="legend-item" id="marginLegend2" style="display:none;">
+                <div class="legend-color" style="background:#22d3ee;"></div>
+                <span>經調整淨利率</span>
+            </div>
         </div>
 
         <div class="controls">
@@ -421,6 +420,7 @@
             <button class="toggle-chart active" id="volBtn">成交量</button>
             <button class="toggle-chart" id="obvBtn">OBV 資金流</button>
             <button class="roe-btn" id="roeBtn">📊 ROE</button>
+            <button class="margin-btn" id="marginBtn">📈 利潤率</button>
         </div>
     </div>
 
@@ -444,7 +444,10 @@
     const volBtn = document.getElementById('volBtn');
     const obvBtn = document.getElementById('obvBtn');
     const roeBtn = document.getElementById('roeBtn');
+    const marginBtn = document.getElementById('marginBtn');
     const roeLegend = document.getElementById('roeLegend');
+    const marginLegend = document.getElementById('marginLegend');
+    const marginLegend2 = document.getElementById('marginLegend2');
     const marketSelect = document.getElementById('marketSelect');
     const stockSelect = document.getElementById('stockSelect');
     const toggleBtn = document.getElementById('toggleBtn');
@@ -459,13 +462,15 @@
     // ====== 圖表區域高度分配 ======
     const PRICE_HEIGHT = 280;
     const VOLUME_HEIGHT = 70;
-    const ROE_HEIGHT = 60;        // ROE 副圖高度
+    const ROE_HEIGHT = 60;
+    const MARGIN_HEIGHT = 70;
     const GAP = 15;
     const TIME_AXIS_HEIGHT = 30;
 
     // ====== 副圖顯示模式 ======
     let subChartMode = 'volume';
-    let roeVisible = false;       // ROE 是否顯示
+    let roeVisible = false;
+    let marginVisible = false;
 
     volBtn.addEventListener('click', () => {
         subChartMode = 'volume';
@@ -489,6 +494,20 @@
         } else {
             roeBtn.classList.remove('active');
             roeLegend.style.display = 'none';
+        }
+        drawChart();
+    });
+
+    marginBtn.addEventListener('click', () => {
+        marginVisible = !marginVisible;
+        if (marginVisible) {
+            marginBtn.classList.add('active');
+            marginLegend.style.display = 'flex';
+            marginLegend2.style.display = 'flex';
+        } else {
+            marginBtn.classList.remove('active');
+            marginLegend.style.display = 'none';
+            marginLegend2.style.display = 'none';
         }
         drawChart();
     });
@@ -552,6 +571,7 @@
     let volumeData = [];
     let obvData = [];
     let roeData = [];
+    let marginsData = [];
     let eventsData = [];
     let visibleCount = 0;
     let playing = false;
@@ -673,7 +693,7 @@
 
         list.forEach(stock => {
             const option = document.createElement('option');
-            option.value = stock.file;
+            option.value = stock.code;
             option.textContent = `${stock.name} (${stock.code})`;
             stockSelect.appendChild(option);
         });
@@ -684,10 +704,10 @@
     // ====== 載入股票 ======
     async function loadStock() {
         const market = marketSelect.value;
-        const file = stockSelect.value;
-        if (!file) return;
+        const code = stockSelect.value;
+        if (!code) return;
 
-        const stockInfo = (STOCK_LISTS[market] || []).find(s => s.file === file);
+        const stockInfo = (STOCK_LISTS[market] || []).find(s => s.code === code);
         if (!stockInfo) return;
 
         stopPlayback();
@@ -705,7 +725,7 @@
         cursorIndex = -1;
 
         const folder = stockInfo.folder;
-const path = `data/${market}/${folder}/${market}_${stockInfo.code}_price.json`;
+        const path = `data/${market}/${folder}/${market}_${stockInfo.code}_price.json`;
 
         try {
             const res = await fetch(path);
@@ -739,7 +759,8 @@ const path = `data/${market}/${folder}/${market}_${stockInfo.code}_price.json`;
             updateDateRange();
 
             await loadEvents(market, stockInfo);
-await loadROE(market, stockInfo);
+            await loadROE(market, stockInfo);
+            await loadMargins(market, stockInfo);
 
             renderEventList();
             prepareStaticView();
@@ -753,6 +774,7 @@ await loadROE(market, stockInfo);
             volumeData = [];
             obvData = [];
             roeData = [];
+            marginsData = [];
             eventsData = [];
             revealedEvents = new Set();
             renderEventList();
@@ -762,30 +784,43 @@ await loadROE(market, stockInfo);
     }
 
     // ====== 載入事件 ======
-async function loadEvents(market, stockInfo) {
-    const eventPath = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_events.json`;
-    try {
-        const res = await fetch(eventPath);
-        if (!res.ok) throw new Error('事件檔不存在');
-        eventsData = await res.json();
-    } catch (err) {
-        console.warn('事件資料載入失敗:', err);
-        eventsData = [];
+    async function loadEvents(market, stockInfo) {
+        const eventPath = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_events.json`;
+        try {
+            const res = await fetch(eventPath);
+            if (!res.ok) throw new Error('事件檔不存在');
+            eventsData = await res.json();
+        } catch (err) {
+            console.warn('事件資料載入失敗:', err);
+            eventsData = [];
+        }
     }
-}
 
     // ====== 載入 ROE ======
-  async function loadROE(market, stockInfo) {
-    const roePath = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_roe.json`;
-    try {
-        const res = await fetch(roePath);
-        if (!res.ok) throw new Error('ROE 檔不存在');
-        roeData = await res.json();
-    } catch (err) {
-        console.warn('ROE 資料載入失敗:', err);
-        roeData = [];
+    async function loadROE(market, stockInfo) {
+        const roePath = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_roe.json`;
+        try {
+            const res = await fetch(roePath);
+            if (!res.ok) throw new Error('ROE 檔不存在');
+            roeData = await res.json();
+        } catch (err) {
+            console.warn('ROE 資料載入失敗:', err);
+            roeData = [];
+        }
     }
-}
+
+    // ====== 載入毛利率 / 淨利率 ======
+    async function loadMargins(market, stockInfo) {
+        const marginPath = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_margins.json`;
+        try {
+            const res = await fetch(marginPath);
+            if (!res.ok) throw new Error('利潤率檔不存在');
+            marginsData = await res.json();
+        } catch (err) {
+            console.warn('利潤率資料載入失敗:', err);
+            marginsData = [];
+        }
+    }
 
     // ====== 準備靜態視圖 ======
     function prepareStaticView() {
@@ -971,27 +1006,29 @@ async function loadEvents(market, stockInfo) {
         });
     }
 
+    // ====== 計算 ROE 副圖的頂部位置（動態）======
+    function getROETop() {
+        let top = PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
+        return top;
+    }
+
     // ====== 繪製 ROE 副圖 ======
     function drawROEChart(paddingLeft, plotWidth, stepX) {
         if (roeData.length === 0) return;
 
-        const roeTop = PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
+        const roeTop = getROETop();
         const roeBottom = roeTop + ROE_HEIGHT;
 
-        // 背景
         ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
         ctx.fillRect(paddingLeft, roeTop, plotWidth, ROE_HEIGHT);
 
-        // 找出 ROE 最大最小值（含 0）
         const roeVals = roeData.map(d => d.roe);
         const maxRoe = Math.max(...roeVals, 0);
         const minRoe = Math.min(...roeVals, 0);
         const roeRange = (maxRoe - minRoe) || 1;
 
-        // 零軸位置
         const zeroY = roeBottom - ((0 - minRoe) / roeRange) * ROE_HEIGHT;
 
-        // 零軸虛線
         ctx.beginPath();
         ctx.setLineDash([4, 4]);
         ctx.strokeStyle = 'rgba(156, 163, 175, 0.4)';
@@ -1001,9 +1038,7 @@ async function loadEvents(market, stockInfo) {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // 繪製每根 ROE 柱
         roeData.forEach(item => {
-            // 找該 ROE 日期對應的索引
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
             if (idx >= visibleCount && cursorIndex < idx) return;
@@ -1011,16 +1046,13 @@ async function loadEvents(market, stockInfo) {
             const x = paddingLeft + idx * stepX;
             const roeY = roeBottom - ((item.roe - minRoe) / roeRange) * ROE_HEIGHT;
 
-            // 柱子寬度
             const barWidth = Math.max(8, stepX * 20);
             const barTop = Math.min(zeroY, roeY);
             const barHeight = Math.abs(zeroY - roeY);
 
-            // 正 ROE 紅色，負 ROE 綠色
             ctx.fillStyle = item.roe >= 0 ? 'rgba(139, 92, 246, 0.8)' : 'rgba(34, 197, 94, 0.8)';
             ctx.fillRect(x - barWidth / 2, barTop, barWidth, Math.max(2, barHeight));
 
-            // 柱子上方標註 H1 / FY
             ctx.font = 'bold 9px monospace';
             ctx.fillStyle = '#a78bfa';
             ctx.textAlign = 'center';
@@ -1028,19 +1060,128 @@ async function loadEvents(market, stockInfo) {
             const labelY = item.roe >= 0 ? barTop - 2 : barTop + barHeight + 10;
             ctx.fillText(item.period, x, labelY);
 
-            // ROE 數值標註
             ctx.font = '9px monospace';
             ctx.fillStyle = '#e5e7eb';
             const valueY = item.roe >= 0 ? barTop - 12 : barTop + barHeight + 20;
             ctx.fillText(item.roe.toFixed(2) + '%', x, valueY);
         });
 
-        // 標籤
         ctx.font = '10px monospace';
         ctx.fillStyle = '#6b7280';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
         ctx.fillText('加權平均 ROE', paddingLeft + 2, roeTop + 2);
+    }
+
+    // ====== 繪製毛利率 / 淨利率副圖 ======
+    function drawMarginsChart(paddingLeft, plotWidth, stepX) {
+        if (marginsData.length === 0) return;
+
+        // 動態計算位置：如果 ROE 顯示，就在 ROE 下方；否則在成交量下方
+        let marginTop;
+        if (roeVisible) {
+            marginTop = getROETop() + ROE_HEIGHT + GAP;
+        } else {
+            marginTop = PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
+        }
+        const marginBottom = marginTop + MARGIN_HEIGHT;
+
+        ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
+        ctx.fillRect(paddingLeft, marginTop, plotWidth, MARGIN_HEIGHT);
+
+        // 找出最大最小值
+        const allVals = [
+            ...marginsData.map(d => d.grossMargin),
+            ...marginsData.map(d => d.adjustedNetMargin)
+        ];
+        const maxVal = Math.max(...allVals, 10);
+        const minVal = Math.min(...allVals, 0);
+        const range = maxVal - minVal || 1;
+
+        const valToY = (val) => {
+            return marginBottom - ((val - minVal) / range) * MARGIN_HEIGHT;
+        };
+
+        // 零軸
+        if (minVal < 0 && maxVal > 0) {
+            const zeroY = valToY(0);
+            ctx.beginPath();
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = 'rgba(156, 163, 175, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.moveTo(paddingLeft, zeroY);
+            ctx.lineTo(canvas.width - 20, zeroY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // 繪製毛利率折線（藍色）
+        ctx.beginPath();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#60a5fa';
+        let started = false;
+        marginsData.forEach(item => {
+            const idx = fullData.findIndex(d => d.date >= item.date);
+            if (idx < 0) return;
+            if (idx >= visibleCount && cursorIndex < idx) return;
+            const x = paddingLeft + idx * stepX;
+            const y = valToY(item.grossMargin);
+            if (!started) { ctx.moveTo(x, y); started = true; }
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // 繪製經調整淨利率折線（青色）
+        ctx.beginPath();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#22d3ee';
+        started = false;
+        marginsData.forEach(item => {
+            const idx = fullData.findIndex(d => d.date >= item.date);
+            if (idx < 0) return;
+            if (idx >= visibleCount && cursorIndex < idx) return;
+            const x = paddingLeft + idx * stepX;
+            const y = valToY(item.adjustedNetMargin);
+            if (!started) { ctx.moveTo(x, y); started = true; }
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // 繪製數據點和標籤
+        marginsData.forEach(item => {
+            const idx = fullData.findIndex(d => d.date >= item.date);
+            if (idx < 0) return;
+            if (idx >= visibleCount && cursorIndex < idx) return;
+            const x = paddingLeft + idx * stepX;
+
+            // 毛利率點（藍色）
+            const gmY = valToY(item.grossMargin);
+            ctx.beginPath();
+            ctx.arc(x, gmY, 3, 0, 2 * Math.PI);
+            ctx.fillStyle = '#60a5fa';
+            ctx.fill();
+
+            // 淨利率點（青色）
+            const nmY = valToY(item.adjustedNetMargin);
+            ctx.beginPath();
+            ctx.arc(x, nmY, 3, 0, 2 * Math.PI);
+            ctx.fillStyle = '#22d3ee';
+            ctx.fill();
+
+            // 期別標籤
+            ctx.font = '9px monospace';
+            ctx.fillStyle = '#9ca3af';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText(item.period, x, marginTop + 2);
+        });
+
+        // 圖表標籤
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#6b7280';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('毛利率（藍） / 經調整淨利率（青）', paddingLeft + 2, marginTop + 14);
     }
 
     // ====== 繪製圖表 ======
@@ -1184,7 +1325,7 @@ async function loadEvents(market, stockInfo) {
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // 副圖區域
+        // 副圖區域（成交量 / OBV）
         const volTop = PRICE_HEIGHT + GAP;
         const volBottom = volTop + VOLUME_HEIGHT;
 
@@ -1287,9 +1428,14 @@ async function loadEvents(market, stockInfo) {
             }
         }
 
-        // ROE 副圖（如果開啟）
+        // ROE 副圖
         if (roeVisible) {
             drawROEChart(paddingLeft, plotWidth, stepX);
+        }
+
+        // 毛利率 / 淨利率副圖
+        if (marginVisible) {
+            drawMarginsChart(paddingLeft, plotWidth, stepX);
         }
 
         // 時間軸
