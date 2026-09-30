@@ -219,7 +219,7 @@
             align-items: center;
             flex-wrap: wrap;
         }
-        button.play-btn, button.pause-btn, button.toggle-chart, button.roe-btn, button.margin-btn {
+        button.play-btn, button.pause-btn, button.toggle-chart, button.roe-btn, button.margin-btn, button.valuation-btn {
             background-color: #374151;
             color: #fff;
             border: none;
@@ -228,7 +228,8 @@
             cursor: pointer;
             font-size: 14px;
         }
-        button.play-btn:hover, button.pause-btn:hover, button.toggle-chart:hover, button.roe-btn:hover, button.margin-btn:hover {
+        button.play-btn:hover, button.pause-btn:hover, button.toggle-chart:hover,
+        button.roe-btn:hover, button.margin-btn:hover, button.valuation-btn:hover {
             background-color: #4b5563;
         }
         button.play-btn:disabled, button.pause-btn:disabled {
@@ -243,6 +244,9 @@
         }
         button.margin-btn.active {
             background-color: #22d3ee;
+        }
+        button.valuation-btn.active {
+            background-color: #f59e0b;
         }
 
         .legend {
@@ -274,7 +278,7 @@
             transition: width 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
             flex-shrink: 0;
             overflow: hidden;
-            max-height: 900px;
+            max-height: 950px;
         }
         .event-panel.open {
             width: 320px;
@@ -388,7 +392,7 @@
         </div>
 
         <div class="canvas-wrapper">
-            <canvas id="stockCanvas" width="800" height="580"></canvas>
+            <canvas id="stockCanvas" width="800" height="720"></canvas>
         </div>
 
         <div class="legend">
@@ -412,6 +416,14 @@
                 <div class="legend-color" style="background:#22d3ee;"></div>
                 <span>經調整淨利率</span>
             </div>
+            <div class="legend-item" id="valuationLegend" style="display:none;">
+                <div class="legend-color" style="background:#f59e0b;"></div>
+                <span>P/E</span>
+            </div>
+            <div class="legend-item" id="valuationLegend2" style="display:none;">
+                <div class="legend-color" style="background:#a78bfa;"></div>
+                <span>P/B</span>
+            </div>
         </div>
 
         <div class="controls">
@@ -421,6 +433,7 @@
             <button class="toggle-chart" id="obvBtn">OBV 資金流</button>
             <button class="roe-btn" id="roeBtn">📊 ROE</button>
             <button class="margin-btn" id="marginBtn">📈 利潤率</button>
+            <button class="valuation-btn" id="valuationBtn">📉 P/E P/B</button>
         </div>
     </div>
 
@@ -445,9 +458,12 @@
     const obvBtn = document.getElementById('obvBtn');
     const roeBtn = document.getElementById('roeBtn');
     const marginBtn = document.getElementById('marginBtn');
+    const valuationBtn = document.getElementById('valuationBtn');
     const roeLegend = document.getElementById('roeLegend');
     const marginLegend = document.getElementById('marginLegend');
     const marginLegend2 = document.getElementById('marginLegend2');
+    const valuationLegend = document.getElementById('valuationLegend');
+    const valuationLegend2 = document.getElementById('valuationLegend2');
     const marketSelect = document.getElementById('marketSelect');
     const stockSelect = document.getElementById('stockSelect');
     const toggleBtn = document.getElementById('toggleBtn');
@@ -464,6 +480,7 @@
     const VOLUME_HEIGHT = 70;
     const ROE_HEIGHT = 60;
     const MARGIN_HEIGHT = 78;
+    const VALUATION_HEIGHT = 70;
     const GAP = 15;
     const TIME_AXIS_HEIGHT = 30;
 
@@ -471,6 +488,7 @@
     let subChartMode = 'volume';
     let roeVisible = false;
     let marginVisible = false;
+    let valuationVisible = false;
 
     volBtn.addEventListener('click', () => {
         subChartMode = 'volume';
@@ -508,6 +526,20 @@
             marginBtn.classList.remove('active');
             marginLegend.style.display = 'none';
             marginLegend2.style.display = 'none';
+        }
+        drawChart();
+    });
+
+    valuationBtn.addEventListener('click', () => {
+        valuationVisible = !valuationVisible;
+        if (valuationVisible) {
+            valuationBtn.classList.add('active');
+            valuationLegend.style.display = 'flex';
+            valuationLegend2.style.display = 'flex';
+        } else {
+            valuationBtn.classList.remove('active');
+            valuationLegend.style.display = 'none';
+            valuationLegend2.style.display = 'none';
         }
         drawChart();
     });
@@ -572,6 +604,7 @@
     let obvData = [];
     let roeData = [];
     let marginsData = [];
+    let valuationData = [];
     let eventsData = [];
     let visibleCount = 0;
     let playing = false;
@@ -761,6 +794,7 @@
             await loadEvents(market, stockInfo);
             await loadROE(market, stockInfo);
             await loadMargins(market, stockInfo);
+            await loadValuation(market, stockInfo);
 
             renderEventList();
             prepareStaticView();
@@ -775,6 +809,7 @@
             obvData = [];
             roeData = [];
             marginsData = [];
+            valuationData = [];
             eventsData = [];
             revealedEvents = new Set();
             renderEventList();
@@ -819,6 +854,19 @@
         } catch (err) {
             console.warn('利潤率資料載入失敗:', err);
             marginsData = [];
+        }
+    }
+
+    // ====== 載入 P/E / P/B ======
+    async function loadValuation(market, stockInfo) {
+        const path = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_valuation.json`;
+        try {
+            const res = await fetch(path);
+            if (!res.ok) throw new Error('估值檔不存在');
+            valuationData = await res.json();
+        } catch (err) {
+            console.warn('估值資料載入失敗:', err);
+            valuationData = [];
         }
     }
 
@@ -1006,10 +1054,29 @@
         });
     }
 
-    // ====== 計算 ROE 副圖的頂部位置（動態）======
+    // ====== 計算各副圖的頂部位置 ======
     function getROETop() {
-        let top = PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
-        return top;
+        return PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
+    }
+
+    function getMarginsBottom() {
+        let marginTop;
+        if (roeVisible) {
+            marginTop = getROETop() + ROE_HEIGHT + GAP;
+        } else {
+            marginTop = PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
+        }
+        return marginTop + MARGIN_HEIGHT;
+    }
+
+    function getValuationTop() {
+        if (marginVisible) {
+            return getMarginsBottom() + GAP;
+        } else if (roeVisible) {
+            return getROETop() + ROE_HEIGHT + GAP;
+        } else {
+            return PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
+        }
     }
 
     // ====== 繪製 ROE 副圖 ======
@@ -1073,11 +1140,10 @@
         ctx.fillText('加權平均 ROE', paddingLeft + 2, roeTop + 2);
     }
 
-        // ====== 繪製毛利率 / 淨利率副圖（分開兩個子圖）======
+    // ====== 繪製毛利率 / 淨利率副圖 ======
     function drawMarginsChart(paddingLeft, plotWidth, stepX) {
         if (marginsData.length === 0) return;
 
-        // 動態計算位置
         let marginTop;
         if (roeVisible) {
             marginTop = getROETop() + ROE_HEIGHT + GAP;
@@ -1085,16 +1151,16 @@
             marginTop = PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
         }
 
-        const GM_HEIGHT = 35;   // 毛利率子圖高度
-        const NM_HEIGHT = 35;   // 淨利率子圖高度
-        const SUB_GAP = 8;      // 兩個子圖間距
+        const GM_HEIGHT = 35;
+        const NM_HEIGHT = 35;
+        const SUB_GAP = 8;
 
         const gmTop = marginTop;
         const gmBottom = gmTop + GM_HEIGHT;
         const nmTop = gmBottom + SUB_GAP;
         const nmBottom = nmTop + NM_HEIGHT;
 
-        // ====== 毛利率子圖 ======
+        // 毛利率子圖
         ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
         ctx.fillRect(paddingLeft, gmTop, plotWidth, GM_HEIGHT);
 
@@ -1105,7 +1171,6 @@
 
         const gmToY = (val) => gmBottom - ((val - gmMin) / gmRange) * GM_HEIGHT;
 
-        // 毛利率柱狀圖
         marginsData.forEach(item => {
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
@@ -1118,28 +1183,20 @@
             ctx.fillStyle = 'rgba(96, 165, 250, 0.7)';
             ctx.fillRect(x - barWidth / 2, barTop, barWidth, gmBottom - barTop);
 
-            // 數值標註
             ctx.font = 'bold 9px monospace';
             ctx.fillStyle = '#93c5fd';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'bottom';
             ctx.fillText(item.grossMargin.toFixed(1) + '%', x, barTop - 2);
-
-            // 期別標籤
-            ctx.font = '8px monospace';
-            ctx.fillStyle = '#6b7280';
-            ctx.textBaseline = 'top';
-            ctx.fillText(item.period, x, gmBottom + 1);
         });
 
-        // 毛利率標籤
         ctx.font = '10px monospace';
         ctx.fillStyle = '#60a5fa';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
         ctx.fillText('毛利率', paddingLeft + 2, gmTop + 2);
 
-        // ====== 淨利率子圖 ======
+        // 淨利率子圖
         ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
         ctx.fillRect(paddingLeft, nmTop, plotWidth, NM_HEIGHT);
 
@@ -1151,7 +1208,6 @@
         const nmToY = (val) => nmBottom - ((val - nmMin) / nmRange) * NM_HEIGHT;
         const zeroY = nmToY(0);
 
-        // 零軸實線
         ctx.beginPath();
         ctx.strokeStyle = 'rgba(156, 163, 175, 0.6)';
         ctx.lineWidth = 1;
@@ -1159,7 +1215,6 @@
         ctx.lineTo(canvas.width - 20, zeroY);
         ctx.stroke();
 
-        // 淨利率柱狀圖（正負分開）
         marginsData.forEach(item => {
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
@@ -1172,13 +1227,11 @@
             const barTop = Math.min(zeroY, valY);
             const barHeight = Math.abs(zeroY - valY);
 
-            // 正：青色；負：紅色
             ctx.fillStyle = item.adjustedNetMargin >= 0
                 ? 'rgba(34, 211, 238, 0.7)'
                 : 'rgba(239, 68, 68, 0.7)';
             ctx.fillRect(x - barWidth / 2, barTop, barWidth, Math.max(2, barHeight));
 
-            // 數值標註
             ctx.font = 'bold 9px monospace';
             ctx.fillStyle = item.adjustedNetMargin >= 0 ? '#67e8f9' : '#fca5a5';
             ctx.textAlign = 'center';
@@ -1191,19 +1244,109 @@
             }
         });
 
-        // 淨利率標籤
         ctx.font = '10px monospace';
         ctx.fillStyle = '#22d3ee';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
         ctx.fillText('經調整淨利率', paddingLeft + 2, nmTop + 2);
 
-        // 零軸標籤
         ctx.font = '8px monospace';
         ctx.fillStyle = '#6b7280';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         ctx.fillText('0%', canvas.width - 22, zeroY);
+    }
+
+    // ====== 繪製 P/E / P/B 副圖 ======
+    function drawValuationChart(paddingLeft, plotWidth, stepX) {
+        if (valuationData.length === 0) return;
+
+        const valTop = getValuationTop();
+        const valBottom = valTop + VALUATION_HEIGHT;
+
+        ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
+        ctx.fillRect(paddingLeft, valTop, plotWidth, VALUATION_HEIGHT);
+
+        const peVals = valuationData.map(d => d.pe);
+        const pbVals = valuationData.map(d => d.pb);
+        const peMax = Math.max(...peVals, 20);
+        const peMin = Math.min(...peVals, 0);
+        const pbMax = Math.max(...pbVals, 3);
+        const pbMin = Math.min(...pbVals, 0);
+
+        const peToY = (val) => valBottom - ((val - peMin) / (peMax - peMin)) * VALUATION_HEIGHT;
+        const pbToY = (val) => valBottom - ((val - pbMin) / (pbMax - pbMin)) * VALUATION_HEIGHT;
+
+        // P/E 折線
+        ctx.beginPath();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#f59e0b';
+        let started = false;
+        valuationData.forEach(item => {
+            const idx = fullData.findIndex(d => d.date >= item.date);
+            if (idx < 0) return;
+            if (idx >= visibleCount && cursorIndex < idx) return;
+            const x = paddingLeft + idx * stepX;
+            const y = peToY(item.pe);
+            if (!started) { ctx.moveTo(x, y); started = true; }
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // P/B 折線
+        ctx.beginPath();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#a78bfa';
+        started = false;
+        valuationData.forEach(item => {
+            const idx = fullData.findIndex(d => d.date >= item.date);
+            if (idx < 0) return;
+            if (idx >= visibleCount && cursorIndex < idx) return;
+            const x = paddingLeft + idx * stepX;
+            const y = pbToY(item.pb);
+            if (!started) { ctx.moveTo(x, y); started = true; }
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // 數據點 + 數值
+        valuationData.forEach(item => {
+            const idx = fullData.findIndex(d => d.date >= item.date);
+            if (idx < 0) return;
+            if (idx >= visibleCount && cursorIndex < idx) return;
+            const x = paddingLeft + idx * stepX;
+
+            const peY = peToY(item.pe);
+            ctx.beginPath();
+            ctx.arc(x, peY, 3, 0, 2 * Math.PI);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fill();
+
+            const pbY = pbToY(item.pb);
+            ctx.beginPath();
+            ctx.arc(x, pbY, 3, 0, 2 * Math.PI);
+            ctx.fillStyle = '#a78bfa';
+            ctx.fill();
+
+            ctx.font = 'bold 9px monospace';
+            ctx.fillStyle = '#fbbf24';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(item.pe.toFixed(1) + 'x', x, peY - 4);
+
+            ctx.fillStyle = '#c4b5fd';
+            ctx.textBaseline = 'top';
+            ctx.fillText(item.pb.toFixed(2) + 'x', x, pbY + 4);
+        });
+
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#f59e0b';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('P/E', paddingLeft + 2, valTop + 2);
+
+        ctx.fillStyle = '#a78bfa';
+        ctx.fillText('P/B', paddingLeft + 40, valTop + 2);
     }
 
     // ====== 繪製圖表 ======
@@ -1347,7 +1490,7 @@
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // 副圖區域（成交量 / OBV）
+        // 成交量 / OBV 副圖
         const volTop = PRICE_HEIGHT + GAP;
         const volBottom = volTop + VOLUME_HEIGHT;
 
@@ -1458,6 +1601,11 @@
         // 毛利率 / 淨利率副圖
         if (marginVisible) {
             drawMarginsChart(paddingLeft, plotWidth, stepX);
+        }
+
+        // P/E / P/B 副圖
+        if (valuationVisible) {
+            drawValuationChart(paddingLeft, plotWidth, stepX);
         }
 
         // 時間軸
