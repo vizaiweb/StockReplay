@@ -480,7 +480,7 @@
     const VOLUME_HEIGHT = 70;
     const ROE_HEIGHT = 60;
     const MARGIN_HEIGHT = 78;
-    const VALUATION_HEIGHT = 70;
+    const VALUATION_HEIGHT = 72;
     const GAP = 15;
     const TIME_AXIS_HEIGHT = 30;
 
@@ -1257,25 +1257,29 @@
         ctx.fillText('0%', canvas.width - 22, zeroY);
     }
 
-    // ====== 繪製 P/E / P/B 副圖 ======
+        // ====== 繪製 P/E / P/B 副圖（上下分開）======
     function drawValuationChart(paddingLeft, plotWidth, stepX) {
         if (valuationData.length === 0) return;
 
         const valTop = getValuationTop();
-        const valBottom = valTop + VALUATION_HEIGHT;
+        const PE_HEIGHT = 32;
+        const PB_HEIGHT = 32;
+        const SUB_GAP = 8;
 
+        const peTop = valTop;
+        const peBottom = peTop + PE_HEIGHT;
+        const pbTop = peBottom + SUB_GAP;
+        const pbBottom = pbTop + PB_HEIGHT;
+
+        // ====== P/E 子圖 ======
         ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
-        ctx.fillRect(paddingLeft, valTop, plotWidth, VALUATION_HEIGHT);
+        ctx.fillRect(paddingLeft, peTop, plotWidth, PE_HEIGHT);
 
         const peVals = valuationData.map(d => d.pe);
-        const pbVals = valuationData.map(d => d.pb);
-        const peMax = Math.max(...peVals, 20);
+        const peMax = Math.max(...peVals, 25);
         const peMin = Math.min(...peVals, 0);
-        const pbMax = Math.max(...pbVals, 3);
-        const pbMin = Math.min(...pbVals, 0);
-
-        const peToY = (val) => valBottom - ((val - peMin) / (peMax - peMin)) * VALUATION_HEIGHT;
-        const pbToY = (val) => valBottom - ((val - pbMin) / (pbMax - pbMin)) * VALUATION_HEIGHT;
+        const peRange = peMax - peMin || 1;
+        const peToY = (val) => peBottom - ((val - peMin) / peRange) * PE_HEIGHT;
 
         // P/E 折線
         ctx.beginPath();
@@ -1293,6 +1297,43 @@
         });
         ctx.stroke();
 
+        // P/E 數據點 + 數值
+        valuationData.forEach(item => {
+            const idx = fullData.findIndex(d => d.date >= item.date);
+            if (idx < 0) return;
+            if (idx >= visibleCount && cursorIndex < idx) return;
+            const x = paddingLeft + idx * stepX;
+            const y = peToY(item.pe);
+
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, 2 * Math.PI);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fill();
+
+            ctx.font = 'bold 9px monospace';
+            ctx.fillStyle = '#fbbf24';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(item.pe.toFixed(1) + 'x', x, y - 4);
+        });
+
+        // P/E 標籤
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#f59e0b';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('P/E', paddingLeft + 2, peTop + 2);
+
+        // ====== P/B 子圖 ======
+        ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
+        ctx.fillRect(paddingLeft, pbTop, plotWidth, PB_HEIGHT);
+
+        const pbVals = valuationData.map(d => d.pb);
+        const pbMax = Math.max(...pbVals, 5);
+        const pbMin = Math.min(...pbVals, 0);
+        const pbRange = pbMax - pbMin || 1;
+        const pbToY = (val) => pbBottom - ((val - pbMin) / pbRange) * PB_HEIGHT;
+
         // P/B 折線
         ctx.beginPath();
         ctx.lineWidth = 1.5;
@@ -1309,44 +1350,32 @@
         });
         ctx.stroke();
 
-        // 數據點 + 數值
+        // P/B 數據點 + 數值
         valuationData.forEach(item => {
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
             if (idx >= visibleCount && cursorIndex < idx) return;
             const x = paddingLeft + idx * stepX;
+            const y = pbToY(item.pb);
 
-            const peY = peToY(item.pe);
             ctx.beginPath();
-            ctx.arc(x, peY, 3, 0, 2 * Math.PI);
-            ctx.fillStyle = '#f59e0b';
-            ctx.fill();
-
-            const pbY = pbToY(item.pb);
-            ctx.beginPath();
-            ctx.arc(x, pbY, 3, 0, 2 * Math.PI);
+            ctx.arc(x, y, 3, 0, 2 * Math.PI);
             ctx.fillStyle = '#a78bfa';
             ctx.fill();
 
             ctx.font = 'bold 9px monospace';
-            ctx.fillStyle = '#fbbf24';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'bottom';
-            ctx.fillText(item.pe.toFixed(1) + 'x', x, peY - 4);
-
             ctx.fillStyle = '#c4b5fd';
+            ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            ctx.fillText(item.pb.toFixed(2) + 'x', x, pbY + 4);
+            ctx.fillText(item.pb.toFixed(2) + 'x', x, y + 4);
         });
 
+        // P/B 標籤
         ctx.font = '10px monospace';
-        ctx.fillStyle = '#f59e0b';
+        ctx.fillStyle = '#a78bfa';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
-        ctx.fillText('P/E', paddingLeft + 2, valTop + 2);
-
-        ctx.fillStyle = '#a78bfa';
-        ctx.fillText('P/B', paddingLeft + 40, valTop + 2);
+        ctx.fillText('P/B', paddingLeft + 2, pbTop + 2);
     }
 
     // ====== 繪製圖表 ======
