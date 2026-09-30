@@ -30,11 +30,12 @@
             background-color: #1f2937;
             border-radius: 8px;
             padding: 20px;
-            width: 220px;
+            width: 240px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             transition: transform 0.3s ease, opacity 0.3s ease, width 0.3s ease, padding 0.3s ease, margin 0.3s ease;
             flex-shrink: 0;
-            overflow: hidden;
+            overflow-y: auto;
+            max-height: 90vh;
         }
         .sidebar.collapsed {
             width: 0;
@@ -60,9 +61,7 @@
             line-height: 1;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
-        .toggle-btn:hover {
-            background-color: #4b5563;
-        }
+        .toggle-btn:hover { background-color: #4b5563; }
 
         .sidebar h3 {
             margin: 0 0 12px 0;
@@ -77,9 +76,7 @@
             margin-bottom: 6px;
             margin-top: 14px;
         }
-        .sidebar label:first-of-type {
-            margin-top: 0;
-        }
+        .sidebar label:first-of-type { margin-top: 0; }
         .sidebar select {
             width: 100%;
             background-color: #374151;
@@ -92,16 +89,10 @@
             outline: none;
             box-sizing: border-box;
         }
-        .sidebar select:hover {
-            border-color: #6b7280;
-        }
-        .sidebar select:focus {
-            border-color: #ef4444;
-        }
+        .sidebar select:hover { border-color: #6b7280; }
+        .sidebar select:focus { border-color: #ef4444; }
 
-        .speed-control {
-            margin-top: 14px;
-        }
+        .speed-control { margin-top: 14px; }
         .speed-control .speed-header {
             display: flex;
             justify-content: space-between;
@@ -147,6 +138,122 @@
             border: 2px solid #fff;
         }
 
+        /* 估值画像摘要卡 */
+        .valuation-summary {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(75, 85, 99, 0.5);
+        }
+        .valuation-summary h4 {
+            margin: 0 0 12px 0;
+            font-size: 13px;
+            color: #d1d5db;
+            font-weight: 600;
+        }
+        .vs-item {
+            background-color: #111827;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+        }
+        .vs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .vs-label { font-size: 11px; color: #9ca3af; }
+        .vs-value {
+            font-size: 13px;
+            font-family: monospace;
+            font-weight: bold;
+            color: #e5e7eb;
+        }
+        .vs-value.low { color: #22c55e; }
+        .vs-value.high { color: #ef4444; }
+        .vs-value.neutral { color: #fbbf24; }
+        .vs-value.na { color: #6b7280; }
+        .vs-note {
+            font-size: 10px;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+        .vs-conclusion {
+            margin-top: 12px;
+            padding: 10px 12px;
+            background-color: #111827;
+            border-radius: 6px;
+            border-left: 3px solid #f59e0b;
+        }
+        .vs-conclusion-title {
+            font-size: 11px;
+            color: #f59e0b;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .vs-conclusion-text {
+            font-size: 11px;
+            color: #d1d5db;
+            line-height: 1.6;
+        }
+
+        /* 季度切換 bar */
+        .quarter-bar {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(75, 85, 99, 0.5);
+        }
+        .quarter-bar-title {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .quarter-track {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            padding: 8px 0;
+        }
+        .quarter-track::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 2px;
+            background-color: #374151;
+            z-index: 0;
+        }
+        .quarter-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #4b5563;
+            cursor: pointer;
+            position: relative;
+            z-index: 1;
+            transition: all 0.2s ease;
+            border: 2px solid #1f2937;
+        }
+        .quarter-dot:hover {
+            background-color: #6b7280;
+            transform: scale(1.2);
+        }
+        .quarter-dot.active {
+            background-color: #f59e0b;
+            transform: scale(1.3);
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+        }
+        .quarter-label {
+            text-align: center;
+            font-size: 11px;
+            font-family: monospace;
+            color: #fbbf24;
+            margin-top: 6px;
+        }
+
         .chart-container {
             background-color: #1f2937;
             border-radius: 8px;
@@ -155,9 +262,7 @@
             width: 800px;
             transition: width 0.3s ease;
         }
-        .chart-container.expanded {
-            width: 1040px;
-        }
+        .chart-container.expanded { width: 1040px; }
 
         .stock-info {
             display: flex;
@@ -165,30 +270,17 @@
             align-items: center;
             margin-bottom: 15px;
         }
-        .stock-name {
-            font-size: 22px;
-            font-weight: bold;
-        }
+        .stock-name { font-size: 22px; font-weight: bold; }
         .stock-price {
             font-size: 26px;
             font-weight: bold;
             font-family: monospace;
             transition: color 0.2s ease;
         }
-        .date-label {
-            font-size: 14px;
-            color: #9ca3af;
-            margin-top: 4px;
-        }
-        .update-time {
-            font-size: 12px;
-            color: #6b7280;
-            margin-top: 2px;
-        }
+        .date-label { font-size: 14px; color: #9ca3af; margin-top: 4px; }
+        .update-time { font-size: 12px; color: #6b7280; margin-top: 2px; }
 
-        .canvas-wrapper {
-            position: relative;
-        }
+        .canvas-wrapper { position: relative; }
         .date-range {
             font-size: 11px;
             font-family: monospace;
@@ -201,9 +293,7 @@
             margin-top: 4px;
             display: inline-block;
         }
-        .date-range span {
-            color: #6b7280;
-        }
+        .date-range span { color: #6b7280; }
 
         canvas {
             display: block;
@@ -219,7 +309,8 @@
             align-items: center;
             flex-wrap: wrap;
         }
-        button.play-btn, button.pause-btn, button.toggle-chart, button.roe-btn, button.margin-btn, button.valuation-btn {
+        button.play-btn, button.pause-btn, button.toggle-chart,
+        button.roe-btn, button.margin-btn, button.valuation-btn {
             background-color: #374151;
             color: #fff;
             border: none;
@@ -236,18 +327,10 @@
             opacity: 0.4;
             cursor: not-allowed;
         }
-        button.toggle-chart.active {
-            background-color: #ef4444;
-        }
-        button.roe-btn.active {
-            background-color: #8b5cf6;
-        }
-        button.margin-btn.active {
-            background-color: #22d3ee;
-        }
-        button.valuation-btn.active {
-            background-color: #f59e0b;
-        }
+        button.toggle-chart.active { background-color: #ef4444; }
+        button.roe-btn.active { background-color: #8b5cf6; }
+        button.margin-btn.active { background-color: #22d3ee; }
+        button.valuation-btn.active { background-color: #f59e0b; }
 
         .legend {
             display: flex;
@@ -257,16 +340,8 @@
             color: #9ca3af;
             flex-wrap: wrap;
         }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .legend-color {
-            width: 16px;
-            height: 3px;
-            border-radius: 2px;
-        }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-color { width: 16px; height: 3px; border-radius: 2px; }
 
         .event-panel {
             background-color: #1f2937;
@@ -301,10 +376,7 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        .event-item:hover {
-            background-color: #1a2233;
-            border-left-color: #6b7280;
-        }
+        .event-item:hover { background-color: #1a2233; border-left-color: #6b7280; }
         .event-item.active {
             border-left-color: #ef4444;
             background-color: #1a2233;
@@ -342,9 +414,7 @@
             font-size: 14px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
-        .event-toggle-btn:hover {
-            background-color: #4b5563;
-        }
+        .event-toggle-btn:hover { background-color: #4b5563; }
     </style>
 </head>
 <body>
@@ -375,6 +445,55 @@
                 <span class="speed-value" id="speedValue">中</span>
             </div>
             <input type="range" id="speedSlider" min="1" max="10" value="5" step="1">
+        </div>
+
+        <!-- 估值画像摘要卡 -->
+        <div class="valuation-summary">
+            <h4>📌 快手當前估值畫像</h4>
+
+            <div class="vs-item">
+                <div class="vs-header">
+                    <span class="vs-label">市盈率 P/E</span>
+                    <span class="vs-value" id="vsPE">—</span>
+                </div>
+                <div class="vs-note" id="vsPENote">—</div>
+            </div>
+
+            <div class="vs-item">
+                <div class="vs-header">
+                    <span class="vs-label">市淨率 P/B</span>
+                    <span class="vs-value" id="vsPB">—</span>
+                </div>
+                <div class="vs-note" id="vsPBNote">—</div>
+            </div>
+
+            <div class="vs-item">
+                <div class="vs-header">
+                    <span class="vs-label">EV/EBITDA</span>
+                    <span class="vs-value" id="vsEV">—</span>
+                </div>
+                <div class="vs-note" id="vsEVNote">—</div>
+            </div>
+
+            <div class="vs-item">
+                <div class="vs-header">
+                    <span class="vs-label">PEG</span>
+                    <span class="vs-value" id="vsPEG">—</span>
+                </div>
+                <div class="vs-note" id="vsPEGNote">—</div>
+            </div>
+
+            <div class="vs-conclusion">
+                <div class="vs-conclusion-title">綜合評估</div>
+                <div class="vs-conclusion-text" id="vsConclusion">—</div>
+            </div>
+        </div>
+
+        <!-- 季度切換 bar -->
+        <div class="quarter-bar">
+            <div class="quarter-bar-title">📅 切換季度</div>
+            <div class="quarter-track" id="quarterTrack"></div>
+            <div class="quarter-label" id="quarterLabel">—</div>
         </div>
     </div>
 
@@ -484,7 +603,6 @@
     const GAP = 15;
     const TIME_AXIS_HEIGHT = 30;
 
-    // ====== 副圖顯示模式 ======
     let subChartMode = 'volume';
     let roeVisible = false;
     let marginVisible = false;
@@ -544,7 +662,6 @@
         drawChart();
     });
 
-    // ====== 速度設定 ======
     let frameDelay = 180;
 
     function updateSpeed() {
@@ -556,7 +673,6 @@
     speedSlider.addEventListener('input', updateSpeed);
     updateSpeed();
 
-    // ====== 收合/展開左側控制面板 ======
     let sidebarCollapsed = false;
     toggleBtn.addEventListener('click', () => {
         sidebarCollapsed = !sidebarCollapsed;
@@ -572,7 +688,6 @@
         drawChart();
     });
 
-    // ====== 收合/展開右側事件面板 ======
     let eventPanelOpen = false;
     eventToggleBtn.addEventListener('click', () => {
         eventPanelOpen = !eventPanelOpen;
@@ -583,7 +698,6 @@
         }
     });
 
-    // ====== 股票清單 ======
     let STOCK_LISTS = {};
 
     async function loadStockLists() {
@@ -615,8 +729,8 @@
     let activeEventIndex = -1;
     let revealedEvents = new Set();
     let cursorIndex = -1;
+    let quarterMarkerDate = null;   // 垂直光柱日期
 
-    // ====== 取得北京時區時間字串 ======
     function getBeijingTime() {
         const now = new Date();
         const formatter = new Intl.DateTimeFormat('zh-CN', {
@@ -634,7 +748,6 @@
         return `${get('year')}/${get('month')}/${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
     }
 
-    // ====== 更新日期範圍 ======
     function updateDateRange() {
         if (fullData.length === 0) {
             dateRangeDisplay.textContent = '—';
@@ -645,7 +758,6 @@
         dateRangeDisplay.innerHTML = `<span>區間：</span>${firstDate} → ${lastDate}`;
     }
 
-    // ====== 渲染事件列表 ======
     function renderEventList() {
         eventList.innerHTML = '';
 
@@ -682,7 +794,6 @@
         });
     }
 
-    // ====== 高亮事件 ======
     function highlightEvent(idx) {
         activeEventIndex = idx;
         const items = eventList.querySelectorAll('.event-item');
@@ -696,7 +807,6 @@
         });
     }
 
-    // ====== 點擊事件跳轉 ======
     function jumpToEvent(idx) {
         if (playing) return;
         const ev = eventsData[idx];
@@ -712,7 +822,6 @@
         highlightEvent(idx);
     }
 
-    // ====== 更新股票下拉選單 ======
     function updateStockList() {
         const market = marketSelect.value;
         const list = STOCK_LISTS[market] || [];
@@ -734,7 +843,6 @@
         loadStock();
     }
 
-    // ====== 載入股票 ======
     async function loadStock() {
         const market = marketSelect.value;
         const code = stockSelect.value;
@@ -756,6 +864,7 @@
         activeEventIndex = -1;
         revealedEvents = new Set();
         cursorIndex = -1;
+        quarterMarkerDate = null;
 
         const folder = stockInfo.folder;
         const path = `data/${market}/${folder}/${market}_${stockInfo.code}_price.json`;
@@ -796,6 +905,7 @@
             await loadMargins(market, stockInfo);
             await loadValuation(market, stockInfo);
 
+            buildQuarterBar();
             renderEventList();
             prepareStaticView();
         } catch (err) {
@@ -818,7 +928,6 @@
         }
     }
 
-    // ====== 載入事件 ======
     async function loadEvents(market, stockInfo) {
         const eventPath = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_events.json`;
         try {
@@ -831,7 +940,6 @@
         }
     }
 
-    // ====== 載入 ROE ======
     async function loadROE(market, stockInfo) {
         const roePath = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_roe.json`;
         try {
@@ -844,7 +952,6 @@
         }
     }
 
-    // ====== 載入毛利率 / 淨利率 ======
     async function loadMargins(market, stockInfo) {
         const marginPath = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_margins.json`;
         try {
@@ -857,7 +964,6 @@
         }
     }
 
-    // ====== 載入 P/E / P/B ======
     async function loadValuation(market, stockInfo) {
         const path = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_valuation.json`;
         try {
@@ -870,19 +976,126 @@
         }
     }
 
-    // ====== 準備靜態視圖 ======
+    // ====== 生成季度切換圓點 ======
+    function buildQuarterBar() {
+        const track = document.getElementById('quarterTrack');
+        track.innerHTML = '';
+
+        if (valuationData.length === 0) {
+            document.getElementById('quarterLabel').textContent = '暫無數據';
+            return;
+        }
+
+        valuationData.forEach((item, idx) => {
+            const dot = document.createElement('div');
+            dot.className = 'quarter-dot';
+            dot.dataset.index = idx;
+
+            const [year, month] = item.date.split('-');
+            const q = Math.ceil(parseInt(month, 10) / 3);
+            dot.title = `${year} Q${q}`;
+
+            dot.addEventListener('click', () => {
+                quarterMarkerDate = item.date;
+                updateValuationSummary(item.date);
+                drawChart();
+
+                document.querySelectorAll('.quarter-dot').forEach(d => d.classList.remove('active'));
+                dot.classList.add('active');
+                document.getElementById('quarterLabel').textContent = `${year} Q${q}`;
+            });
+
+            track.appendChild(dot);
+        });
+    }
+
+    // ====== 更新估值画像摘要卡 ======
+    function updateValuationSummary(currentDate) {
+        const latestVal = valuationData.length > 0
+            ? [...valuationData].reverse().find(d => d.date <= currentDate)
+            : null;
+
+        // P/E
+        if (latestVal && latestVal.pe != null) {
+            const peEl = document.getElementById('vsPE');
+            peEl.textContent = latestVal.pe.toFixed(1) + 'x';
+            let peNote, peClass;
+            if (latestVal.pe < 8) { peClass = 'low'; peNote = '絕對值偏低，反映市場悲觀預期'; }
+            else if (latestVal.pe < 15) { peClass = 'neutral'; peNote = '估值中性，處於合理區間'; }
+            else { peClass = 'high'; peNote = '估值偏高，需警惕回調風險'; }
+            peEl.className = 'vs-value ' + peClass;
+            document.getElementById('vsPENote').textContent = peNote;
+        } else {
+            document.getElementById('vsPE').textContent = '—';
+            document.getElementById('vsPENote').textContent = '暫無數據';
+        }
+
+        // P/B
+        if (latestVal && latestVal.pb != null) {
+            const pbEl = document.getElementById('vsPB');
+            pbEl.textContent = latestVal.pb.toFixed(2) + 'x';
+            let pbNote, pbClass;
+            if (latestVal.pb < 1.5) { pbClass = 'low'; pbNote = '接近破淨，估值處於歷史低位'; }
+            else if (latestVal.pb < 3) { pbClass = 'neutral'; pbNote = '估值中性，淨資產回報合理'; }
+            else { pbClass = 'high'; pbNote = '估值偏高，需結合 ROE 判斷'; }
+            pbEl.className = 'vs-value ' + pbClass;
+            document.getElementById('vsPBNote').textContent = pbNote;
+        } else {
+            document.getElementById('vsPB').textContent = '—';
+            document.getElementById('vsPBNote').textContent = '暫無數據';
+        }
+
+        // EV/EBITDA
+        if (latestVal && latestVal.evEbitda != null) {
+            const evEl = document.getElementById('vsEV');
+            evEl.textContent = latestVal.evEbitda.toFixed(1) + 'x';
+            let evNote, evClass;
+            if (latestVal.evEbitda < 6) { evClass = 'low'; evNote = '極低，反映市場對現金流的極度悲觀'; }
+            else if (latestVal.evEbitda < 12) { evClass = 'neutral'; evNote = '合理區間，現金流估值中性'; }
+            else { evClass = 'high'; evNote = '偏高，需警惕現金流惡化'; }
+            evEl.className = 'vs-value ' + evClass;
+            document.getElementById('vsEVNote').textContent = evNote;
+        } else {
+            document.getElementById('vsEV').textContent = '—';
+            document.getElementById('vsEVNote').textContent = '暫無數據';
+        }
+
+        // PEG
+        if (latestVal && latestVal.peg != null) {
+            const pegEl = document.getElementById('vsPEG');
+            pegEl.textContent = latestVal.peg.toFixed(2);
+            let pegNote, pegClass;
+            if (latestVal.peg < 1) { pegClass = 'low'; pegNote = '低於 1，增長快於估值，具吸引力'; }
+            else if (latestVal.peg < 2) { pegClass = 'neutral'; pegNote = '估值與增長匹配，合理'; }
+            else { pegClass = 'high'; pegNote = '高於 2，估值偏貴'; }
+            pegEl.className = 'vs-value ' + pegClass;
+            document.getElementById('vsPEGNote').textContent = pegNote;
+        } else {
+            document.getElementById('vsPEG').textContent = 'N/A';
+            document.getElementById('vsPEG').className = 'vs-value na';
+            document.getElementById('vsPEGNote').textContent = '盈利負增長，PEG 失效';
+        }
+
+        // 綜合評估
+        document.getElementById('vsConclusion').innerHTML = `
+            <strong>四個指標均指向「估值極度悲觀」</strong>：P/E 低、P/B 接近破淨、EV/EBITDA 極低、PEG 失效。<br><br>
+            核心風險在於 <strong>2026 年 AI 投入持續侵蝕利潤</strong>，2026 Q2 經調整淨利潤同比 -30.3%，盈利方向不明。<br><br>
+            若可靈 AI 開始貢獻高毛利收入，估值有修復空間；若盈利繼續下滑，低估值可能持續。
+        `;
+    }
+
     function prepareStaticView() {
         stopPlayback();
         visibleCount = fullData.length;
         cursorIndex = fullData.length - 1;
         updateTouchStatus();
         drawChart();
+        updateValuationSummary(fullData[fullData.length - 1].date);
         playBtn.disabled = false;
         playBtn.textContent = '▶ 播放';
         pauseBtn.disabled = true;
     }
 
-    // ====== 檢查高低點 ======
     function updateTouchStatus() {
         if (fullData.length === 0) return;
 
@@ -901,7 +1114,6 @@
         if (!lowTouched && visibleLow <= historicalLow + 1e-6) lowTouched = true;
     }
 
-    // ====== 停止播放 ======
     function stopPlayback() {
         playing = false;
         paused = false;
@@ -911,7 +1123,6 @@
         }
     }
 
-    // ====== 播放控制 ======
     function startPlayback() {
         stopPlayback();
         visibleCount = 0;
@@ -922,6 +1133,7 @@
         lowTouched = false;
         activeEventIndex = -1;
         revealedEvents = new Set();
+        quarterMarkerDate = null;
         renderEventList();
 
         playBtn.disabled = true;
@@ -955,7 +1167,6 @@
     marketSelect.addEventListener('change', updateStockList);
     stockSelect.addEventListener('change', loadStock);
 
-    // ====== 繪製空圖表 ======
     function drawEmptyChart() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#4b5563';
@@ -964,7 +1175,6 @@
         ctx.fillText('請選擇股票', canvas.width / 2, canvas.height / 2);
     }
 
-    // ====== 格式化大數字 ======
     function formatLargeNumber(num) {
         const abs = Math.abs(num);
         if (abs >= 1e12) return (num / 1e12).toFixed(2) + 'T';
@@ -974,7 +1184,6 @@
         return num.toString();
     }
 
-    // ====== 繪製時間軸 ======
     function drawTimeAxis(paddingLeft, plotWidth, stepX, totalPoints) {
         const axisY = canvas.height - TIME_AXIS_HEIGHT;
 
@@ -1029,7 +1238,6 @@
         });
     }
 
-    // ====== 繪製事件標記 ======
     function drawEventMarkers(paddingLeft, stepX) {
         revealedEvents.forEach(idx => {
             const ev = eventsData[idx];
@@ -1054,7 +1262,6 @@
         });
     }
 
-    // ====== 計算各副圖的頂部位置 ======
     function getROETop() {
         return PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
     }
@@ -1079,7 +1286,6 @@
         }
     }
 
-    // ====== 繪製 ROE 副圖 ======
     function drawROEChart(paddingLeft, plotWidth, stepX) {
         if (roeData.length === 0) return;
 
@@ -1140,7 +1346,6 @@
         ctx.fillText('加權平均 ROE', paddingLeft + 2, roeTop + 2);
     }
 
-    // ====== 繪製毛利率 / 淨利率副圖 ======
     function drawMarginsChart(paddingLeft, plotWidth, stepX) {
         if (marginsData.length === 0) return;
 
@@ -1160,7 +1365,6 @@
         const nmTop = gmBottom + SUB_GAP;
         const nmBottom = nmTop + NM_HEIGHT;
 
-        // 毛利率子圖
         ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
         ctx.fillRect(paddingLeft, gmTop, plotWidth, GM_HEIGHT);
 
@@ -1168,7 +1372,6 @@
         const gmMax = Math.max(...gmVals, 60);
         const gmMin = Math.min(...gmVals, 0);
         const gmRange = gmMax - gmMin || 1;
-
         const gmToY = (val) => gmBottom - ((val - gmMin) / gmRange) * GM_HEIGHT;
 
         marginsData.forEach(item => {
@@ -1196,7 +1399,6 @@
         ctx.textBaseline = 'top';
         ctx.fillText('毛利率', paddingLeft + 2, gmTop + 2);
 
-        // 淨利率子圖
         ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
         ctx.fillRect(paddingLeft, nmTop, plotWidth, NM_HEIGHT);
 
@@ -1204,7 +1406,6 @@
         const nmMax = Math.max(...nmVals, 20);
         const nmMin = Math.min(...nmVals, -30);
         const nmRange = nmMax - nmMin || 1;
-
         const nmToY = (val) => nmBottom - ((val - nmMin) / nmRange) * NM_HEIGHT;
         const zeroY = nmToY(0);
 
@@ -1257,7 +1458,6 @@
         ctx.fillText('0%', canvas.width - 22, zeroY);
     }
 
-        // ====== 繪製 P/E / P/B 副圖（上下分開）======
     function drawValuationChart(paddingLeft, plotWidth, stepX) {
         if (valuationData.length === 0) return;
 
@@ -1271,7 +1471,7 @@
         const pbTop = peBottom + SUB_GAP;
         const pbBottom = pbTop + PB_HEIGHT;
 
-        // ====== P/E 子圖 ======
+        // P/E 子圖
         ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
         ctx.fillRect(paddingLeft, peTop, plotWidth, PE_HEIGHT);
 
@@ -1281,7 +1481,6 @@
         const peRange = peMax - peMin || 1;
         const peToY = (val) => peBottom - ((val - peMin) / peRange) * PE_HEIGHT;
 
-        // P/E 折線
         ctx.beginPath();
         ctx.lineWidth = 1.5;
         ctx.strokeStyle = '#f59e0b';
@@ -1297,7 +1496,6 @@
         });
         ctx.stroke();
 
-        // P/E 數據點 + 數值
         valuationData.forEach(item => {
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
@@ -1317,14 +1515,13 @@
             ctx.fillText(item.pe.toFixed(1) + 'x', x, y - 4);
         });
 
-        // P/E 標籤
         ctx.font = '10px monospace';
         ctx.fillStyle = '#f59e0b';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
         ctx.fillText('P/E', paddingLeft + 2, peTop + 2);
 
-        // ====== P/B 子圖 ======
+        // P/B 子圖
         ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
         ctx.fillRect(paddingLeft, pbTop, plotWidth, PB_HEIGHT);
 
@@ -1334,7 +1531,6 @@
         const pbRange = pbMax - pbMin || 1;
         const pbToY = (val) => pbBottom - ((val - pbMin) / pbRange) * PB_HEIGHT;
 
-        // P/B 折線
         ctx.beginPath();
         ctx.lineWidth = 1.5;
         ctx.strokeStyle = '#a78bfa';
@@ -1350,7 +1546,6 @@
         });
         ctx.stroke();
 
-        // P/B 數據點 + 數值
         valuationData.forEach(item => {
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
@@ -1370,7 +1565,6 @@
             ctx.fillText(item.pb.toFixed(2) + 'x', x, y + 4);
         });
 
-        // P/B 標籤
         ctx.font = '10px monospace';
         ctx.fillStyle = '#a78bfa';
         ctx.textAlign = 'left';
@@ -1378,7 +1572,6 @@
         ctx.fillText('P/B', paddingLeft + 2, pbTop + 2);
     }
 
-    // ====== 繪製圖表 ======
     function drawChart() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -1411,7 +1604,6 @@
             return PRICE_HEIGHT - ((price - minPrice) / priceRange) * PRICE_HEIGHT;
         };
 
-        // 歷史高位橫線
         if (highTouched) {
             const highY = priceToY(historicalHigh);
             ctx.beginPath();
@@ -1430,7 +1622,6 @@
             ctx.fillText(`歷史高位 ${historicalHigh.toFixed(2)}`, paddingLeft + 4, highY - 3);
         }
 
-        // 歷史低位橫線
         if (lowTouched) {
             const lowY = priceToY(historicalLow);
             ctx.beginPath();
@@ -1449,12 +1640,10 @@
             ctx.fillText(`歷史低位 ${historicalLow.toFixed(2)}`, paddingLeft + 4, lowY + 3);
         }
 
-        // 漸層
         const grad = ctx.createLinearGradient(0, 0, 0, PRICE_HEIGHT);
         grad.addColorStop(0, 'rgba(239, 68, 68, 0.15)');
         grad.addColorStop(1, 'rgba(17, 24, 39, 0)');
 
-        // 折線
         ctx.beginPath();
         ctx.lineWidth = 2;
         ctx.strokeStyle = '#ef4444';
@@ -1475,7 +1664,6 @@
         ctx.fillStyle = grad;
         ctx.fill();
 
-        // MA20 均線
         if (ma20Data.length > 0) {
             const maMap = new Map(ma20Data.map(d => [d.date, d.ma20]));
             ctx.beginPath();
@@ -1499,7 +1687,6 @@
             ctx.stroke();
         }
 
-        // 圓點和方框位置
         let cursorPos = cursorIndex;
         if (cursorPos < 0 || cursorPos >= visibleCount) {
             cursorPos = visibleCount - 1;
@@ -1519,7 +1706,7 @@
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // 成交量 / OBV 副圖
+        // 副圖
         const volTop = PRICE_HEIGHT + GAP;
         const volBottom = volTop + VOLUME_HEIGHT;
 
@@ -1622,26 +1809,62 @@
             }
         }
 
-        // ROE 副圖
-        if (roeVisible) {
-            drawROEChart(paddingLeft, plotWidth, stepX);
-        }
+        if (roeVisible) drawROEChart(paddingLeft, plotWidth, stepX);
+        if (marginVisible) drawMarginsChart(paddingLeft, plotWidth, stepX);
+        if (valuationVisible) drawValuationChart(paddingLeft, plotWidth, stepX);
 
-        // 毛利率 / 淨利率副圖
-        if (marginVisible) {
-            drawMarginsChart(paddingLeft, plotWidth, stepX);
-        }
-
-        // P/E / P/B 副圖
-        if (valuationVisible) {
-            drawValuationChart(paddingLeft, plotWidth, stepX);
-        }
-
-        // 時間軸
         drawTimeAxis(paddingLeft, plotWidth, stepX, totalPoints);
-
-        // 事件標記
         drawEventMarkers(paddingLeft, stepX);
+
+        // ====== 季度垂直光柱 ======
+        if (quarterMarkerDate) {
+            const qIdx = fullData.findIndex(d => d.date >= quarterMarkerDate);
+            if (qIdx >= 0) {
+                const qX = paddingLeft + qIdx * stepX;
+                const topY = 0;
+                const bottomY = canvas.height - TIME_AXIS_HEIGHT;
+
+                const beamGrad = ctx.createLinearGradient(qX - 8, 0, qX + 8, 0);
+                beamGrad.addColorStop(0, 'rgba(245, 158, 11, 0)');
+                beamGrad.addColorStop(0.5, 'rgba(245, 158, 11, 0.25)');
+                beamGrad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+
+                ctx.fillStyle = beamGrad;
+                ctx.fillRect(qX - 8, topY, 16, bottomY - topY);
+
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+                ctx.moveTo(qX, topY);
+                ctx.lineTo(qX, bottomY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                const [year, month] = quarterMarkerDate.split('-');
+                const q = Math.ceil(parseInt(month, 10) / 3);
+                const label = `${year} Q${q}`;
+
+                ctx.font = 'bold 11px monospace';
+                const labelWidth = ctx.measureText(label).width + 12;
+                const labelX = Math.min(Math.max(qX - labelWidth / 2, paddingLeft), canvas.width - paddingRight - labelWidth);
+                const labelY = 4;
+
+                ctx.fillStyle = 'rgba(245, 158, 11, 0.95)';
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(labelX, labelY, labelWidth, 18, 4);
+                } else {
+                    ctx.rect(labelX, labelY, labelWidth, 18);
+                }
+                ctx.fill();
+
+                ctx.fillStyle = '#111827';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, labelX + labelWidth / 2, labelY + 9);
+            }
+        }
 
         // 動態氣泡
         const cursorPrev = cursorPos > 0 ? fullData[cursorPos - 1] : cursorData;
@@ -1684,15 +1907,13 @@
         ctx.font = '11px monospace';
         ctx.fillText(dateText, boxX + boxWidth / 2, boxY + 29);
 
-        // 更新右上角股價
         priceDisplay.textContent = cursorData.close.toFixed(2);
         priceDisplay.style.color = priceColor;
-
-        // 更新左側日期標籤
         dateDisplay.textContent = cursorData.date;
+
+        updateValuationSummary(cursorData.date);
     }
 
-    // ====== 圓角矩形 ======
     function roundRect(ctx, x, y, width, height, radius) {
         ctx.beginPath();
         ctx.moveTo(x + radius, y);
@@ -1707,7 +1928,6 @@
         ctx.closePath();
     }
 
-    // ====== 檢查事件觸發 ======
     function checkEventTrigger() {
         if (fullData.length === 0 || eventsData.length === 0) return;
 
@@ -1730,7 +1950,6 @@
         }
     }
 
-    // ====== 動畫循環 ======
     function loop() {
         if (!playing || paused) return;
 
@@ -1757,7 +1976,6 @@
         }
     }
 
-    // ====== 啟動 ======
     loadStockLists();
 </script>
 
