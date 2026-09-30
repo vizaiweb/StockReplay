@@ -238,6 +238,21 @@
         button.toggle-chart.active {
             background-color: #ef4444;
         }
+        button.roe-btn {
+            background-color: #374151;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button.roe-btn:hover {
+            background-color: #4b5563;
+        }
+        button.roe-btn.active {
+            background-color: #8b5cf6;
+        }
 
         .legend {
             display: flex;
@@ -257,7 +272,7 @@
             border-radius: 2px;
         }
 
-        /* ====== 右側事件面板 ====== */
+        /* 右側事件面板 */
         .event-panel {
             background-color: #1f2937;
             border-radius: 8px;
@@ -268,7 +283,7 @@
             transition: width 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
             flex-shrink: 0;
             overflow: hidden;
-            max-height: 700px;
+            max-height: 800px;
         }
         .event-panel.open {
             width: 320px;
@@ -382,7 +397,7 @@
         </div>
 
         <div class="canvas-wrapper">
-            <canvas id="stockCanvas" width="800" height="430"></canvas>
+            <canvas id="stockCanvas" width="800" height="500"></canvas>
         </div>
 
         <div class="legend">
@@ -394,6 +409,10 @@
                 <div class="legend-color" style="background:#fbbf24;"></div>
                 <span>MA20</span>
             </div>
+            <div class="legend-item" id="roeLegend" style="display:none;">
+                <div class="legend-color" style="background:#8b5cf6;"></div>
+                <span>加權平均ROE</span>
+            </div>
         </div>
 
         <div class="controls">
@@ -401,10 +420,10 @@
             <button class="pause-btn" id="pauseBtn" disabled>⏸ 暫停</button>
             <button class="toggle-chart active" id="volBtn">成交量</button>
             <button class="toggle-chart" id="obvBtn">OBV 資金流</button>
+            <button class="roe-btn" id="roeBtn">📊 ROE</button>
         </div>
     </div>
 
-    <!-- 右側事件面板 -->
     <div class="event-panel" id="eventPanel">
         <h3>📰 重大事件</h3>
         <div id="eventList"></div>
@@ -424,6 +443,8 @@
     const pauseBtn = document.getElementById('pauseBtn');
     const volBtn = document.getElementById('volBtn');
     const obvBtn = document.getElementById('obvBtn');
+    const roeBtn = document.getElementById('roeBtn');
+    const roeLegend = document.getElementById('roeLegend');
     const marketSelect = document.getElementById('marketSelect');
     const stockSelect = document.getElementById('stockSelect');
     const toggleBtn = document.getElementById('toggleBtn');
@@ -438,11 +459,13 @@
     // ====== 圖表區域高度分配 ======
     const PRICE_HEIGHT = 280;
     const VOLUME_HEIGHT = 70;
+    const ROE_HEIGHT = 60;        // ROE 副圖高度
     const GAP = 15;
     const TIME_AXIS_HEIGHT = 30;
 
     // ====== 副圖顯示模式 ======
     let subChartMode = 'volume';
+    let roeVisible = false;       // ROE 是否顯示
 
     volBtn.addEventListener('click', () => {
         subChartMode = 'volume';
@@ -455,6 +478,18 @@
         subChartMode = 'obv';
         obvBtn.classList.add('active');
         volBtn.classList.remove('active');
+        drawChart();
+    });
+
+    roeBtn.addEventListener('click', () => {
+        roeVisible = !roeVisible;
+        if (roeVisible) {
+            roeBtn.classList.add('active');
+            roeLegend.style.display = 'flex';
+        } else {
+            roeBtn.classList.remove('active');
+            roeLegend.style.display = 'none';
+        }
         drawChart();
     });
 
@@ -516,6 +551,7 @@
     let ma20Data = [];
     let volumeData = [];
     let obvData = [];
+    let roeData = [];
     let eventsData = [];
     let visibleCount = 0;
     let playing = false;
@@ -524,9 +560,8 @@
     let highTouched = false;
     let lowTouched = false;
     let activeEventIndex = -1;
-
-    // 已顯示的事件索引集合（跑動時逐步顯示）
     let revealedEvents = new Set();
+    let cursorIndex = -1;
 
     // ====== 取得北京時區時間字串 ======
     function getBeijingTime() {
@@ -557,7 +592,7 @@
         dateRangeDisplay.innerHTML = `<span>區間：</span>${firstDate} → ${lastDate}`;
     }
 
-    // ====== 渲染事件列表（只顯示已揭露的事件）======
+    // ====== 渲染事件列表 ======
     function renderEventList() {
         eventList.innerHTML = '';
 
@@ -566,7 +601,6 @@
             return;
         }
 
-        // 按索引排序，只顯示已揭露的
         const sortedIndexes = [...revealedEvents].sort((a, b) => a - b);
 
         if (sortedIndexes.length === 0) {
@@ -595,7 +629,7 @@
         });
     }
 
-    // ====== 高亮某個事件 ======
+    // ====== 高亮事件 ======
     function highlightEvent(idx) {
         activeEventIndex = idx;
         const items = eventList.querySelectorAll('.event-item');
@@ -609,23 +643,18 @@
         });
     }
 
-        // ====== 點擊事件：圓點和方框跳到該日期，但曲線保持完整 ======
+    // ====== 點擊事件跳轉 ======
     function jumpToEvent(idx) {
         if (playing) return;
         const ev = eventsData[idx];
         if (!ev) return;
 
-        // 找到該事件日期在 fullData 中的索引
         const targetIndex = fullData.findIndex(d => d.date >= ev.date);
         if (targetIndex < 0) return;
 
-        // 設定游標位置（圓點和方框跳到這裡）
         cursorIndex = targetIndex;
-
-        // 設定當前高亮的事件索引
         activeEventIndex = idx;
 
-        // 重繪（曲線保持完整，圓點跳到指定位置）
         drawChart();
         highlightEvent(idx);
     }
@@ -652,7 +681,7 @@
         loadStock();
     }
 
-    // ====== 載入選擇的股票 ======
+    // ====== 載入股票 ======
     async function loadStock() {
         const market = marketSelect.value;
         const file = stockSelect.value;
@@ -709,6 +738,8 @@
             updateDateRange();
 
             await loadEvents(market, file);
+            await loadROE(market, file);
+
             renderEventList();
             prepareStaticView();
         } catch (err) {
@@ -720,6 +751,7 @@
             ma20Data = [];
             volumeData = [];
             obvData = [];
+            roeData = [];
             eventsData = [];
             revealedEvents = new Set();
             renderEventList();
@@ -728,7 +760,7 @@
         }
     }
 
-    // ====== 載入事件資料 ======
+    // ====== 載入事件 ======
     async function loadEvents(market, file) {
         const eventFile = file.replace(/^/, 'events_');
         const eventPath = `data/${market}/${eventFile}`;
@@ -743,11 +775,26 @@
         }
     }
 
+    // ====== 載入 ROE ======
+    async function loadROE(market, file) {
+        const roeFile = file.replace(/^/, 'roe_');
+        const roePath = `data/${market}/${roeFile}`;
+
+        try {
+            const res = await fetch(roePath);
+            if (!res.ok) throw new Error('ROE 檔不存在');
+            roeData = await res.json();
+        } catch (err) {
+            console.warn('ROE 資料載入失敗:', err);
+            roeData = [];
+        }
+    }
+
     // ====== 準備靜態視圖 ======
     function prepareStaticView() {
         stopPlayback();
         visibleCount = fullData.length;
-        cursorIndex = fullData.length - 1;   // 游標在最後一點
+        cursorIndex = fullData.length - 1;
         updateTouchStatus();
         drawChart();
         playBtn.disabled = false;
@@ -755,7 +802,7 @@
         pauseBtn.disabled = true;
     }
 
-    // ====== 檢查是否觸碰歷史高低點 ======
+    // ====== 檢查高低點 ======
     function updateTouchStatus() {
         if (fullData.length === 0) return;
 
@@ -902,7 +949,7 @@
         });
     }
 
-        // ====== 繪製事件標記（只畫已揭露的事件）======
+    // ====== 繪製事件標記 ======
     function drawEventMarkers(paddingLeft, stepX) {
         revealedEvents.forEach(idx => {
             const ev = eventsData[idx];
@@ -915,7 +962,6 @@
             const x = paddingLeft + eventIndex * stepX;
             const axisY = canvas.height - TIME_AXIS_HEIGHT;
 
-            // 用事件索引 idx 判斷是否高亮，而不是用 eventIndex
             const isActive = idx === activeEventIndex;
 
             ctx.beginPath();
@@ -926,6 +972,78 @@
             ctx.closePath();
             ctx.fill();
         });
+    }
+
+    // ====== 繪製 ROE 副圖 ======
+    function drawROEChart(paddingLeft, plotWidth, stepX) {
+        if (roeData.length === 0) return;
+
+        const roeTop = PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
+        const roeBottom = roeTop + ROE_HEIGHT;
+
+        // 背景
+        ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
+        ctx.fillRect(paddingLeft, roeTop, plotWidth, ROE_HEIGHT);
+
+        // 找出 ROE 最大最小值（含 0）
+        const roeVals = roeData.map(d => d.roe);
+        const maxRoe = Math.max(...roeVals, 0);
+        const minRoe = Math.min(...roeVals, 0);
+        const roeRange = (maxRoe - minRoe) || 1;
+
+        // 零軸位置
+        const zeroY = roeBottom - ((0 - minRoe) / roeRange) * ROE_HEIGHT;
+
+        // 零軸虛線
+        ctx.beginPath();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = 'rgba(156, 163, 175, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.moveTo(paddingLeft, zeroY);
+        ctx.lineTo(canvas.width - 20, zeroY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 繪製每根 ROE 柱
+        roeData.forEach(item => {
+            // 找該 ROE 日期對應的索引
+            const idx = fullData.findIndex(d => d.date >= item.date);
+            if (idx < 0) return;
+            if (idx >= visibleCount && cursorIndex < idx) return;
+
+            const x = paddingLeft + idx * stepX;
+            const roeY = roeBottom - ((item.roe - minRoe) / roeRange) * ROE_HEIGHT;
+
+            // 柱子寬度
+            const barWidth = Math.max(8, stepX * 20);
+            const barTop = Math.min(zeroY, roeY);
+            const barHeight = Math.abs(zeroY - roeY);
+
+            // 正 ROE 紅色，負 ROE 綠色
+            ctx.fillStyle = item.roe >= 0 ? 'rgba(139, 92, 246, 0.8)' : 'rgba(34, 197, 94, 0.8)';
+            ctx.fillRect(x - barWidth / 2, barTop, barWidth, Math.max(2, barHeight));
+
+            // 柱子上方標註 H1 / FY
+            ctx.font = 'bold 9px monospace';
+            ctx.fillStyle = '#a78bfa';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            const labelY = item.roe >= 0 ? barTop - 2 : barTop + barHeight + 10;
+            ctx.fillText(item.period, x, labelY);
+
+            // ROE 數值標註
+            ctx.font = '9px monospace';
+            ctx.fillStyle = '#e5e7eb';
+            const valueY = item.roe >= 0 ? barTop - 12 : barTop + barHeight + 20;
+            ctx.fillText(item.roe.toFixed(2) + '%', x, valueY);
+        });
+
+        // 標籤
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#6b7280';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('加權平均 ROE', paddingLeft + 2, roeTop + 2);
     }
 
     // ====== 繪製圖表 ======
@@ -1049,10 +1167,10 @@
             ctx.stroke();
         }
 
-        // ====== 圓點和方框：位置由 cursorIndex 決定 ======
+        // 圓點和方框位置
         let cursorPos = cursorIndex;
         if (cursorPos < 0 || cursorPos >= visibleCount) {
-            cursorPos = visibleCount - 1;   // 預設在曲線末端
+            cursorPos = visibleCount - 1;
         }
         if (cursorPos < 0) cursorPos = 0;
 
@@ -1172,13 +1290,18 @@
             }
         }
 
+        // ROE 副圖（如果開啟）
+        if (roeVisible) {
+            drawROEChart(paddingLeft, plotWidth, stepX);
+        }
+
         // 時間軸
         drawTimeAxis(paddingLeft, plotWidth, stepX, totalPoints);
 
         // 事件標記
         drawEventMarkers(paddingLeft, stepX);
 
-        // ====== 動態氣泡（位置由 cursorPos 決定）======
+        // 動態氣泡
         const cursorPrev = cursorPos > 0 ? fullData[cursorPos - 1] : cursorData;
         const cursorChange = cursorData.close - cursorPrev.close;
 
@@ -1242,7 +1365,7 @@
         ctx.closePath();
     }
 
-        // ====== 檢查並揭露事件（跑動時）======
+    // ====== 檢查事件觸發 ======
     function checkEventTrigger() {
         if (fullData.length === 0 || eventsData.length === 0) return;
 
@@ -1259,9 +1382,8 @@
 
         if (newlyRevealed) {
             renderEventList();
-            // 高亮最新揭露的事件索引
             const maxIdx = Math.max(...revealedEvents);
-            activeEventIndex = maxIdx;   // 確保 activeEventIndex 與事件索引一致
+            activeEventIndex = maxIdx;
             highlightEvent(maxIdx);
         }
     }
@@ -1279,10 +1401,8 @@
             playBtn.textContent = '↻ 重播';
             pauseBtn.disabled = true;
             pauseBtn.textContent = '⏸ 暫停';
-            // 跑完後，游標停在最後一點
             cursorIndex = fullData.length - 1;
         } else {
-            // 跑動時游標跟著曲線末端
             cursorIndex = visibleCount - 1;
         }
 
