@@ -1944,7 +1944,13 @@
         priceDisplay.style.color = priceColor;
         dateDisplay.textContent = cursorData.date;
 
-        updateValuationSummary(cursorData.date);
+                // 更新左侧估值画像摘要卡
+        // 如果有季度标记，优先显示季度数据；否则显示光标位置数据
+        if (quarterMarkerDate) {
+            updateValuationSummary(quarterMarkerDate);
+        } else {
+            updateValuationSummary(cursorData.date);
+        }
     }
 
     function roundRect(ctx, x, y, width, height, radius) {
