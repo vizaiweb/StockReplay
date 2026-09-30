@@ -731,6 +731,40 @@
     let cursorIndex = -1;
     let quarterMarkerDate = null;   // 垂直光柱日期
 
+
+        // ====== 根據當前日期點亮對應的季度圓點 ======
+    function highlightQuarterDot(currentDate) {
+        const dots = document.querySelectorAll('.quarter-dot');
+        if (dots.length === 0 || valuationData.length === 0) return;
+
+        // 找出日期 <= currentDate 的最新一期
+        let activeIdx = -1;
+        for (let i = 0; i < valuationData.length; i++) {
+            if (valuationData[i].date <= currentDate) {
+                activeIdx = i;
+            } else {
+                break;
+            }
+        }
+
+        // 更新圆点高亮
+        dots.forEach((dot, i) => {
+            if (i === activeIdx) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
+
+        // 更新季度标签
+        if (activeIdx >= 0) {
+            const item = valuationData[activeIdx];
+            const [year, month] = item.date.split('-');
+            const q = Math.ceil(parseInt(month, 10) / 3);
+            document.getElementById('quarterLabel').textContent = `${year} Q${q}`;
+        }
+    }
+    
     function getBeijingTime() {
         const now = new Date();
         const formatter = new Intl.DateTimeFormat('zh-CN', {
@@ -996,6 +1030,12 @@
             dot.title = `${year} Q${q}`;
 
             dot.addEventListener('click', () => {
+
+                // 如果正在播放，先暂停
+                if (playing) {
+                    pausePlayback();
+                }
+                
                 quarterMarkerDate = item.date;
                 updateValuationSummary(item.date);
                 drawChart();
@@ -1951,6 +1991,9 @@
         } else {
             updateValuationSummary(cursorData.date);
         }
+
+        // 点亮对应的季度圆点
+        highlightQuarterDot(cursorData.date);
     }
 
     function roundRect(ctx, x, y, width, height, radius) {
