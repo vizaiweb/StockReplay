@@ -449,7 +449,7 @@
 
         <!-- 估值画像摘要卡 -->
         <div class="valuation-summary">
-            <h4>📌 快手當前估值畫像</h4>
+            <h4>📌 當前估值畫像</h4>
 
             <div class="vs-item">
                 <div class="vs-header">
@@ -1011,18 +1011,26 @@
 
     // ====== 更新估值画像摘要卡 ======
     function updateValuationSummary(currentDate) {
+        // 找出日期 <= currentDate 的最新一期
         const latestVal = valuationData.length > 0
             ? [...valuationData].reverse().find(d => d.date <= currentDate)
             : null;
 
-        // P/E
+        // ====== P/E ======
         if (latestVal && latestVal.pe != null) {
             const peEl = document.getElementById('vsPE');
             peEl.textContent = latestVal.pe.toFixed(1) + 'x';
             let peNote, peClass;
-            if (latestVal.pe < 8) { peClass = 'low'; peNote = '絕對值偏低，反映市場悲觀預期'; }
-            else if (latestVal.pe < 15) { peClass = 'neutral'; peNote = '估值中性，處於合理區間'; }
-            else { peClass = 'high'; peNote = '估值偏高，需警惕回調風險'; }
+            if (latestVal.pe < 8) {
+                peClass = 'low';
+                peNote = '絕對值偏低，反映市場悲觀預期';
+            } else if (latestVal.pe < 15) {
+                peClass = 'neutral';
+                peNote = '估值中性，處於合理區間';
+            } else {
+                peClass = 'high';
+                peNote = '估值偏高，需警惕回調風險';
+            }
             peEl.className = 'vs-value ' + peClass;
             document.getElementById('vsPENote').textContent = peNote;
         } else {
@@ -1030,14 +1038,21 @@
             document.getElementById('vsPENote').textContent = '暫無數據';
         }
 
-        // P/B
+        // ====== P/B ======
         if (latestVal && latestVal.pb != null) {
             const pbEl = document.getElementById('vsPB');
             pbEl.textContent = latestVal.pb.toFixed(2) + 'x';
             let pbNote, pbClass;
-            if (latestVal.pb < 1.5) { pbClass = 'low'; pbNote = '接近破淨，估值處於歷史低位'; }
-            else if (latestVal.pb < 3) { pbClass = 'neutral'; pbNote = '估值中性，淨資產回報合理'; }
-            else { pbClass = 'high'; pbNote = '估值偏高，需結合 ROE 判斷'; }
+            if (latestVal.pb < 1.5) {
+                pbClass = 'low';
+                pbNote = '接近破淨，估值處於歷史低位';
+            } else if (latestVal.pb < 3) {
+                pbClass = 'neutral';
+                pbNote = '估值中性，淨資產回報合理';
+            } else {
+                pbClass = 'high';
+                pbNote = '估值偏高，需結合 ROE 判斷';
+            }
             pbEl.className = 'vs-value ' + pbClass;
             document.getElementById('vsPBNote').textContent = pbNote;
         } else {
@@ -1045,14 +1060,21 @@
             document.getElementById('vsPBNote').textContent = '暫無數據';
         }
 
-        // EV/EBITDA
+        // ====== EV/EBITDA ======
         if (latestVal && latestVal.evEbitda != null) {
             const evEl = document.getElementById('vsEV');
             evEl.textContent = latestVal.evEbitda.toFixed(1) + 'x';
             let evNote, evClass;
-            if (latestVal.evEbitda < 6) { evClass = 'low'; evNote = '極低，反映市場對現金流的極度悲觀'; }
-            else if (latestVal.evEbitda < 12) { evClass = 'neutral'; evNote = '合理區間，現金流估值中性'; }
-            else { evClass = 'high'; evNote = '偏高，需警惕現金流惡化'; }
+            if (latestVal.evEbitda < 6) {
+                evClass = 'low';
+                evNote = '極低，反映市場對現金流的極度悲觀';
+            } else if (latestVal.evEbitda < 12) {
+                evClass = 'neutral';
+                evNote = '合理區間，現金流估值中性';
+            } else {
+                evClass = 'high';
+                evNote = '偏高，需警惕現金流惡化';
+            }
             evEl.className = 'vs-value ' + evClass;
             document.getElementById('vsEVNote').textContent = evNote;
         } else {
@@ -1060,14 +1082,21 @@
             document.getElementById('vsEVNote').textContent = '暫無數據';
         }
 
-        // PEG
+        // ====== PEG ======
         if (latestVal && latestVal.peg != null) {
             const pegEl = document.getElementById('vsPEG');
             pegEl.textContent = latestVal.peg.toFixed(2);
             let pegNote, pegClass;
-            if (latestVal.peg < 1) { pegClass = 'low'; pegNote = '低於 1，增長快於估值，具吸引力'; }
-            else if (latestVal.peg < 2) { pegClass = 'neutral'; pegNote = '估值與增長匹配，合理'; }
-            else { pegClass = 'high'; pegNote = '高於 2，估值偏貴'; }
+            if (latestVal.peg < 1) {
+                pegClass = 'low';
+                pegNote = '低於 1，增長快於估值，具吸引力';
+            } else if (latestVal.peg < 2) {
+                pegClass = 'neutral';
+                pegNote = '估值與增長匹配，合理';
+            } else {
+                pegClass = 'high';
+                pegNote = '高於 2，估值偏貴';
+            }
             pegEl.className = 'vs-value ' + pegClass;
             document.getElementById('vsPEGNote').textContent = pegNote;
         } else {
@@ -1076,12 +1105,16 @@
             document.getElementById('vsPEGNote').textContent = '盈利負增長，PEG 失效';
         }
 
-        // 綜合評估
-        document.getElementById('vsConclusion').innerHTML = `
-            <strong>四個指標均指向「估值極度悲觀」</strong>：P/E 低、P/B 接近破淨、EV/EBITDA 極低、PEG 失效。<br><br>
-            核心風險在於 <strong>2026 年 AI 投入持續侵蝕利潤</strong>，2026 Q2 經調整淨利潤同比 -30.3%，盈利方向不明。<br><br>
-            若可靈 AI 開始貢獻高毛利收入，估值有修復空間；若盈利繼續下滑，低估值可能持續。
-        `;
+        // ====== 綜合評估（動態讀取該季度的 comment）======
+        const conclusionEl = document.getElementById('vsConclusion');
+        if (latestVal && latestVal.comment) {
+            conclusionEl.innerHTML = `
+                <div style="font-size:10px;color:#fbbf24;margin-bottom:6px;">數據期間：${latestVal.period || latestVal.date}</div>
+                ${latestVal.comment}
+            `;
+        } else {
+            conclusionEl.textContent = '暫無該季度的綜合評估';
+        }
     }
 
     function prepareStaticView() {
