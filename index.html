@@ -704,7 +704,8 @@
         revealedEvents = new Set();
         cursorIndex = -1;
 
-        const path = `data/${market}/${file}`;
+        const folder = stockInfo.folder;
+const path = `data/${market}/${folder}/${market}_${stockInfo.code}_price.json`;
 
         try {
             const res = await fetch(path);
@@ -737,8 +738,8 @@
             updateTimeDisplay.textContent = `更新時間：${getBeijingTime()}`;
             updateDateRange();
 
-            await loadEvents(market, file);
-            await loadROE(market, file);
+            await loadEvents(market, stockInfo);
+await loadROE(market, stockInfo);
 
             renderEventList();
             prepareStaticView();
@@ -761,34 +762,30 @@
     }
 
     // ====== 載入事件 ======
-    async function loadEvents(market, file) {
-        const eventFile = file.replace(/^/, 'events_');
-        const eventPath = `data/${market}/${eventFile}`;
-
-        try {
-            const res = await fetch(eventPath);
-            if (!res.ok) throw new Error('事件檔不存在');
-            eventsData = await res.json();
-        } catch (err) {
-            console.warn('事件資料載入失敗:', err);
-            eventsData = [];
-        }
+async function loadEvents(market, stockInfo) {
+    const eventPath = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_events.json`;
+    try {
+        const res = await fetch(eventPath);
+        if (!res.ok) throw new Error('事件檔不存在');
+        eventsData = await res.json();
+    } catch (err) {
+        console.warn('事件資料載入失敗:', err);
+        eventsData = [];
     }
+}
 
     // ====== 載入 ROE ======
-    async function loadROE(market, file) {
-        const roeFile = file.replace(/^/, 'roe_');
-        const roePath = `data/${market}/${roeFile}`;
-
-        try {
-            const res = await fetch(roePath);
-            if (!res.ok) throw new Error('ROE 檔不存在');
-            roeData = await res.json();
-        } catch (err) {
-            console.warn('ROE 資料載入失敗:', err);
-            roeData = [];
-        }
+  async function loadROE(market, stockInfo) {
+    const roePath = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_roe.json`;
+    try {
+        const res = await fetch(roePath);
+        if (!res.ok) throw new Error('ROE 檔不存在');
+        roeData = await res.json();
+    } catch (err) {
+        console.warn('ROE 資料載入失敗:', err);
+        roeData = [];
     }
+}
 
     // ====== 準備靜態視圖 ======
     function prepareStaticView() {
