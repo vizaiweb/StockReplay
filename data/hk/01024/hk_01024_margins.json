@@ -1,0 +1,7 @@
+[
+  { "date": "2021-12-31", "grossMargin": 42.0, "adjustedNetMargin": -23.3, "period": "FY" },
+  { "date": "2022-12-31", "grossMargin": 44.7, "adjustedNetMargin": -6.1, "period": "FY" },
+  { "date": "2023-12-31", "grossMargin": 50.6, "adjustedNetMargin": 9.1, "period": "FY" },
+  { "date": "2024-12-31", "grossMargin": 54.6, "adjustedNetMargin": 14.0, "period": "FY" },
+  { "date": "2025-12-31", "grossMargin": 55.0, "adjustedNetMargin": 14.5, "period": "FY" }
+]
