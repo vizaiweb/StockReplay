@@ -1683,11 +1683,11 @@ const CASHFLOW_HEIGHT = 60;
         }
     }
 
-    // ====== 繪製經營活動現金流副圖（柱狀圖，從 2023 開始）======
+        // ====== 繪製經營活動現金流 / 可支配現金副圖（兩根並排柱）======
     function drawCashflowChart(paddingLeft, plotWidth, stepX) {
         if (!valuationData || valuationData.length === 0) return;
 
-        // 过滤出 2023 年之后、有现金流数据、且为正的季度
+        // 过滤出 2023 年之后、有经营活动现金流的数据
         const cashflowData = valuationData.filter(d =>
             d.operatingCashFlow != null &&
             d.operatingCashFlow > 0 &&
@@ -1702,56 +1702,62 @@ const CASHFLOW_HEIGHT = 60;
         ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
         ctx.fillRect(paddingLeft, cfTop, plotWidth, CASHFLOW_HEIGHT);
 
-        // 线性 Y 轴范围
-        const vals = cashflowData.map(d => d.operatingCashFlow);
-        const cfMax = Math.max(...vals, 350);
-        const cfMin = 0;
-        const cfRange = cfMax - cfMin || 1;
+        // ====== 兩組數據各自的最大值 ======
+        const cfVals = cashflowData.map(d => d.operatingCashFlow);
+        const crVals = cashflowData.filter(d => d.cashReserve != null).map(d => d.cashReserve);
+        const cfMax = Math.max(...cfVals, 1);
+        const crMax = Math.max(...crVals, 1);
 
-        const cfToY = (val) => cfBottom - ((val - cfMin) / cfRange) * CASHFLOW_HEIGHT;
+        // 各自映射到 Y 軸（從底部往上）
+        const cfToY = (val) => cfBottom - (val / cfMax) * CASHFLOW_HEIGHT;
+        const crToY = (val) => cfBottom - (val / crMax) * CASHFLOW_HEIGHT;
 
-        // 网格线（0、100、200、300）
-                [0, 100, 200, 300].forEach(gv => {
-            if (gv > cfMax) return;
-            const gy = cfToY(gv);
-            ctx.beginPath();
-            ctx.setLineDash([2, 3]);
-            ctx.strokeStyle = 'rgba(75, 85, 99, 0.3)';
-            ctx.lineWidth = 1;
-            ctx.moveTo(paddingLeft, gy);
-            ctx.lineTo(canvas.width - 20, gy);
-            ctx.stroke();
-            ctx.setLineDash([]);
-        });
-
-                 // 柱狀圖
+        // ====== 繪製柱狀圖 ======
+                // ====== 繪製柱狀圖 ======
         cashflowData.forEach(item => {
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
             if (idx >= visibleCount && cursorIndex < idx) return;
 
             const x = paddingLeft + idx * stepX;
-            const barWidth = Math.max(14, stepX * 35);
-            const barTop = cfToY(item.operatingCashFlow);
+            const barWidth = Math.max(8, stepX * 18);
 
-            // 柱體
-            ctx.fillStyle = 'rgba(16, 185, 129, 0.7)';
-            ctx.fillRect(x - barWidth / 2, barTop, barWidth, cfBottom - barTop);
+            // 左柱：經營活動現金流（綠色）
+            const cfBarTop = cfToY(item.operatingCashFlow);
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.8)';
+            ctx.fillRect(x - barWidth - 1, cfBarTop, barWidth, cfBottom - cfBarTop);
 
-            // 數值
-            ctx.font = 'bold 9px monospace';
+            // 左柱數值標籤
+            ctx.font = 'bold 8px monospace';
             ctx.fillStyle = '#6ee7b7';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'bottom';
-            ctx.fillText(item.operatingCashFlow.toFixed(0) + '億', x, barTop - 2);
+            ctx.fillText(item.operatingCashFlow.toFixed(0), x - barWidth / 2 - 1, cfBarTop - 2);
+
+            // 右柱：可支配現金（藍色），如果有數據
+            if (item.cashReserve != null) {
+                const crBarTop = crToY(item.cashReserve);
+                ctx.fillStyle = 'rgba(59, 130, 246, 0.8)';
+                ctx.fillRect(x + 1, crBarTop, barWidth, cfBottom - crBarTop);
+
+                // 右柱數值標籤
+                ctx.fillStyle = '#93c5fd';
+                ctx.fillText(item.cashReserve.toFixed(0), x + barWidth / 2 + 1, crBarTop - 2);
+            }
         });
 
-        // 標籤
+        // ====== 標籤 ======
         ctx.font = '10px monospace';
-        ctx.fillStyle = '#10b981';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
+
+        // 左上角標籤
+        ctx.fillStyle = '#10b981';
         ctx.fillText('經營活動現金流', paddingLeft + 2, cfTop + 2);
+
+        // 右上角標籤
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillText('可支配現金', paddingLeft + 100, cfTop + 2);
     }
 
     
