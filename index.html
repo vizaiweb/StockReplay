@@ -501,6 +501,22 @@
                 </div>
                 <div class="vs-note" id="vsROENote">—</div>
             </div>
+
+                        <div class="vs-item">
+                <div class="vs-header">
+                    <span class="vs-label">毛利率</span>
+                    <span class="vs-value" id="vsGrossMargin">—</span>
+                </div>
+                <div class="vs-note" id="vsGrossMarginNote">—</div>
+            </div>
+
+            <div class="vs-item">
+                <div class="vs-header">
+                    <span class="vs-label">經調整淨利率</span>
+                    <span class="vs-value" id="vsNetMargin">—</span>
+                </div>
+                <div class="vs-note" id="vsNetMarginNote">—</div>
+            </div>
             
             <div class="vs-item">
                 <div class="vs-header">
@@ -1210,6 +1226,62 @@ const DEBT_HEIGHT = 50;
             }
         }
 
+
+                // ====== 毛利率 ======
+        if (marginsData.length > 0) {
+            const latestMargin = [...marginsData].reverse().find(d => d.date <= currentDate);
+            if (latestMargin && latestMargin.grossMargin != null) {
+                const gmEl = document.getElementById('vsGrossMargin');
+                gmEl.textContent = latestMargin.grossMargin.toFixed(1) + '%';
+
+                let gmNote, gmClass;
+                if (latestMargin.grossMargin >= 55) {
+                    gmClass = 'low';
+                    gmNote = '毛利率高，產品競爭力強';
+                } else if (latestMargin.grossMargin >= 45) {
+                    gmClass = 'neutral';
+                    gmNote = '毛利率中等，處於合理區間';
+                } else {
+                    gmClass = 'high';
+                    gmNote = '毛利率偏低，需留意成本壓力';
+                }
+                gmEl.className = 'vs-value ' + gmClass;
+                document.getElementById('vsGrossMarginNote').textContent = gmNote;
+            } else {
+                document.getElementById('vsGrossMargin').textContent = '—';
+                document.getElementById('vsGrossMarginNote').textContent = '暫無數據';
+            }
+        }
+
+        // ====== 經調整淨利率 ======
+        if (marginsData.length > 0) {
+            const latestMargin = [...marginsData].reverse().find(d => d.date <= currentDate);
+            if (latestMargin && latestMargin.adjustedNetMargin != null) {
+                const nmEl = document.getElementById('vsNetMargin');
+                nmEl.textContent = latestMargin.adjustedNetMargin.toFixed(1) + '%';
+
+                let nmNote, nmClass;
+                if (latestMargin.adjustedNetMargin >= 15) {
+                    nmClass = 'low';
+                    nmNote = '淨利率高，最終賺錢能力強';
+                } else if (latestMargin.adjustedNetMargin >= 5) {
+                    nmClass = 'neutral';
+                    nmNote = '淨利率中等，盈利效率合理';
+                } else if (latestMargin.adjustedNetMargin >= 0) {
+                    nmClass = 'neutral';
+                    nmNote = '淨利率偏低，盈利效率一般';
+                } else {
+                    nmClass = 'high';
+                    nmNote = '淨利率為負，公司虧損';
+                }
+                nmEl.className = 'vs-value ' + nmClass;
+                document.getElementById('vsNetMarginNote').textContent = nmNote;
+            } else {
+                document.getElementById('vsNetMargin').textContent = '—';
+                document.getElementById('vsNetMarginNote').textContent = '暫無數據';
+            }
+        }
+        
         // ====== 經營活動現金流 ======
         if (latestVal && latestVal.operatingCashFlow != null) {
             const cfEl = document.getElementById('vsCashFlow');
