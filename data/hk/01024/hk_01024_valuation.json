@@ -2,37 +2,37 @@
   {
     "date": "2024-03-31", "period": "FY2023",
     "pe": 32.40, "pb": 4.29, "evEbitda": 8.50, "peg": null,
-    "operatingCashFlow": 207.81, "cashReserve": 777, "debtRatio": null,
+    "operatingCashFlow": 207.81, "cashReserve": 777, "debtRatio": 0.54,
     "comment": "首次全年盈利（淨利潤 64 億），經營現金流大幅轉正至 207.81 億。可利用資金總額 777 億。P/E 因基數極低而虛高。"
   },
   {
     "date": "2024-08-31", "period": "H1 2024",
     "pe": 18.45, "pb": 3.75, "evEbitda": 7.20, "peg": null,
-    "operatingCashFlow": 134.04, "cashReserve": 777, "debtRatio": null,
+    "operatingCashFlow": 134.04, "cashReserve": 777, "debtRatio": 0.53,
     "comment": "盈利加速釋放，P/E 快速消化至 18.45 倍。經營現金流持續為正。可利用資金總額 777 億。"
   },
   {
     "date": "2025-04-30", "period": "FY2024",
     "pe": 13.17, "pb": 3.26, "evEbitda": 5.50, "peg": null,
-    "operatingCashFlow": 297.87, "cashReserve": 928, "debtRatio": null,
+    "operatingCashFlow": 297.87, "cashReserve": 928, "debtRatio": 0.56,
     "comment": "全年淨利潤 153 億（+139.76%），經營現金流達峰值 297.87 億。可利用資金總額增至 928 億。"
   },
   {
     "date": "2025-09-04", "period": "H1 2025",
     "pe": 17.06, "pb": 3.89, "evEbitda": 13.05, "peg": 0.41,
-    "operatingCashFlow": 117.81, "cashReserve": 1066, "debtRatio": null,
+    "operatingCashFlow": 117.81, "cashReserve": 1066, "debtRatio": 0.55,
     "comment": "中期淨利潤 89 億（+9.9%），增速放緩。DeepSeek 引發 AI 重估，估值擴張。可利用資金總額 1,066 億。"
   },
   {
     "date": "2026-03-31", "period": "FY2025",
     "pe": 9.41, "pb": 2.17, "evEbitda": 4.73, "peg": 2.19,
-    "operatingCashFlow": 267.16, "cashReserve": 1177, "debtRatio": null,
+    "operatingCashFlow": 267.16, "cashReserve": 1177, "debtRatio": 0.52,
     "comment": "全年淨利潤 206 億，但 AI 投入開始侵蝕利潤。騰訊減持，估值下修至 9.41 倍。可利用資金總額 1,177 億。"
   },
   {
     "date": "2026-09-02", "period": "H1 2026",
     "pe": 8.02, "pb": 1.54, "evEbitda": 4.30, "peg": null,
-    "operatingCashFlow": 90.44, "cashReserve": 1213, "debtRatio": 58.8,
+    "operatingCashFlow": 90.44, "cashReserve": 1213, "debtRatio": 0.59,
     "comment": "中期淨利潤 60 億（-32.03%），AI 投入嚴重拖累利潤。但經營現金流仍為正（90.44 億），可利用資金總額高達 1,213 億，負債比率 58.8%，短期無財務風險。"
   }
 ]
