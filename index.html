@@ -1535,7 +1535,16 @@ const CASHFLOW_HEIGHT = 60;
                 : 'rgba(239, 68, 68, 0.7)';
             ctx.fillRect(x - barWidth / 2, barTop, barWidth, Math.max(2, barHeight));
 
-           
+             ctx.font = 'bold 9px monospace';
+            ctx.fillStyle = item.adjustedNetMargin >= 0 ? '#67e8f9' : '#fca5a5';
+            ctx.textAlign = 'center';
+            if (item.adjustedNetMargin >= 0) {
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(item.adjustedNetMargin.toFixed(1) + '%', x, barTop - 2);
+            } else {
+                ctx.textBaseline = 'top';
+                ctx.fillText(item.adjustedNetMargin.toFixed(1) + '%', x, barTop + barHeight + 2);
+            }
         });
 
         ctx.font = '10px monospace';
@@ -1544,11 +1553,7 @@ const CASHFLOW_HEIGHT = 60;
         ctx.textBaseline = 'top';
         ctx.fillText('經調整淨利率', paddingLeft + 2, nmTop + 2);
 
-        ctx.font = '8px monospace';
-        ctx.fillStyle = '#6b7280';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('0%', canvas.width - 22, zeroY);
+      
     }
 
     function drawValuationChart(paddingLeft, plotWidth, stepX) {
@@ -1706,7 +1711,7 @@ const CASHFLOW_HEIGHT = 60;
         const cfToY = (val) => cfBottom - ((val - cfMin) / cfRange) * CASHFLOW_HEIGHT;
 
         // 网格线（0、100、200、300）
-        [0, 100, 200, 300].forEach(gv => {
+                [0, 100, 200, 300].forEach(gv => {
             if (gv > cfMax) return;
             const gy = cfToY(gv);
             ctx.beginPath();
@@ -1717,15 +1722,9 @@ const CASHFLOW_HEIGHT = 60;
             ctx.lineTo(canvas.width - 20, gy);
             ctx.stroke();
             ctx.setLineDash([]);
-
-            ctx.font = '8px monospace';
-            ctx.fillStyle = '#6b7280';
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(gv + '億', canvas.width - 22, gy);
         });
 
-               // 柱狀圖
+                 // 柱狀圖
         cashflowData.forEach(item => {
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
@@ -1738,6 +1737,13 @@ const CASHFLOW_HEIGHT = 60;
             // 柱體
             ctx.fillStyle = 'rgba(16, 185, 129, 0.7)';
             ctx.fillRect(x - barWidth / 2, barTop, barWidth, cfBottom - barTop);
+
+            // 數值
+            ctx.font = 'bold 9px monospace';
+            ctx.fillStyle = '#6ee7b7';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(item.operatingCashFlow.toFixed(0) + '億', x, barTop - 2);
         });
 
         // 標籤
