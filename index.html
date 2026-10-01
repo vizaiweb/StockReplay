@@ -347,6 +347,22 @@
         button.cashflow-btn.active {
             background-color: #10b981;
         }
+
+        button.debt-btn {
+            background-color: #374151;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button.debt-btn:hover {
+            background-color: #4b5563;
+        }
+        button.debt-btn.active {
+            background-color: #f97316;
+        }
         
         .legend {
             display: flex;
@@ -437,6 +453,8 @@
 
 <button class="toggle-btn" id="toggleBtn">☰</button>
 <button class="event-toggle-btn" id="eventToggleBtn">📰 事件</button>
+
+    <button class="debt-btn" id="debtBtn">📉 負債比率</button>
 
 <div class="app-wrapper">
 
@@ -689,6 +707,16 @@
         drawChart();
     });
 
+        debtBtn.addEventListener('click', () => {
+        debtVisible = !debtVisible;
+        if (debtVisible) {
+            debtBtn.classList.add('active');
+        } else {
+            debtBtn.classList.remove('active');
+        }
+        drawChart();
+    });
+
     let frameDelay = 180;
 
     function updateSpeed() {
@@ -759,6 +787,8 @@
     let quarterMarkerDate = null;   // 垂直光柱日期
     let cashflowVisible = false;
 const CASHFLOW_HEIGHT = 60;
+    let debtVisible = false;
+const DEBT_HEIGHT = 50;
 
 
         // ====== 根據當前日期點亮對應的季度圓點 ======
@@ -1760,6 +1790,93 @@ const CASHFLOW_HEIGHT = 60;
         ctx.fillText('可支配現金(彈藥) / 億元', paddingLeft + 120, cfTop + 2);
     }
 
+        function getDebtTop() {
+        if (cashflowVisible) {
+            return getCashflowTop() + CASHFLOW_HEIGHT + GAP;
+        } else if (valuationVisible) {
+            return getValuationTop() + VALUATION_HEIGHT + GAP;
+        } else if (marginVisible) {
+            return getMarginsBottom() + GAP;
+        } else if (roeVisible) {
+            return getROETop() + ROE_HEIGHT + GAP;
+        } else {
+            return PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
+        }
+    }
+
+    // ====== 繪製負債比率副圖 ======
+    function drawDebtChart(paddingLeft, plotWidth, stepX) {
+        if (!valuationData || valuationData.length === 0) return;
+
+        const debtData = valuationData.filter(d => d.debtRatio != null);
+        if (debtData.length === 0) return;
+
+        const dTop = getDebtTop();
+        const dBottom = dTop + DEBT_HEIGHT;
+
+        // 背景
+        ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
+        ctx.fillRect(paddingLeft, dTop, plotWidth, DEBT_HEIGHT);
+
+        // Y 轴范围：50%~70%
+        const dMin = 40;
+        const dMax = 70;
+        const dRange = dMax - dMin;
+
+        const dToY = (val) => dBottom - ((val - dMin) / dRange) * DEBT_HEIGHT;
+
+        // 网格线
+        [40, 50, 60, 70].forEach(gv => {
+            const gy = dToY(gv);
+            ctx.beginPath();
+            ctx.setLineDash([2, 3]);
+            ctx.strokeStyle = 'rgba(75, 85, 99, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.moveTo(paddingLeft, gy);
+            ctx.lineTo(canvas.width - 20, gy);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.font = '8px monospace';
+            ctx.fillStyle = '#6b7280';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(gv + '%', canvas.width - 22, gy);
+        });
+
+        // 柱状图
+        debtData.forEach(item => {
+            const idx = fullData.findIndex(d => d.date >= item.date);
+            if (idx < 0) return;
+            if (idx >= visibleCount && cursorIndex < idx) return;
+
+            const x = paddingLeft + idx * stepX;
+            const barWidth = Math.max(14, stepX * 35);
+            const barTop = dToY(item.debtRatio * 100);
+
+            // 柱体：颜色根据比率高低
+            let color;
+            if (item.debtRatio < 0.5) color = 'rgba(34, 197, 94, 0.7)';       // 绿：<50%
+            else if (item.debtRatio < 0.6) color = 'rgba(251, 191, 36, 0.7)';  // 黄：50-60%
+            else color = 'rgba(239, 68, 68, 0.7)';                             // 红：>60%
+            ctx.fillStyle = color;
+            ctx.fillRect(x - barWidth / 2, barTop, barWidth, dBottom - barTop);
+
+            // 数值
+            ctx.font = 'bold 9px monospace';
+            ctx.fillStyle = '#fdba74';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText((item.debtRatio * 100).toFixed(1) + '%', x, barTop - 2);
+        });
+
+        // 标签
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#f97316';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('負債比率', paddingLeft + 2, dTop + 2);
+    }
     
     function drawChart() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -2002,6 +2119,7 @@ const CASHFLOW_HEIGHT = 60;
         if (marginVisible) drawMarginsChart(paddingLeft, plotWidth, stepX);
         if (valuationVisible) drawValuationChart(paddingLeft, plotWidth, stepX);
                 if (cashflowVisible) drawCashflowChart(paddingLeft, plotWidth, stepX);
+                if (debtVisible) drawDebtChart(paddingLeft, plotWidth, stepX);
 
         drawTimeAxis(paddingLeft, plotWidth, stepX, totalPoints);
         drawEventMarkers(paddingLeft, stepX);
