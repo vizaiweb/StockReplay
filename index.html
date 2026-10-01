@@ -1804,7 +1804,7 @@ const DEBT_HEIGHT = 50;
         }
     }
 
-    // ====== 繪製負債比率副圖 ======
+            // ====== 繪製負債比率副圖（折線，顏色動態）======
     function drawDebtChart(paddingLeft, plotWidth, stepX) {
         if (!valuationData || valuationData.length === 0) return;
 
@@ -1818,15 +1818,24 @@ const DEBT_HEIGHT = 50;
         ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
         ctx.fillRect(paddingLeft, dTop, plotWidth, DEBT_HEIGHT);
 
-        // Y 轴范围：50%~70%
-        const dMin = 40;
-        const dMax = 70;
+        // ====== Y 軸範圍：根據數據動態計算 ======
+        const vals = debtData.map(d => d.debtRatio * 100);
+        const dataMin = Math.min(...vals);
+        const dataMax = Math.max(...vals);
+
+        // 上下各留 10% 邊距，並取整到最近的 5%
+        let dMin = Math.floor((dataMin - 5) / 5) * 5;
+        let dMax = Math.ceil((dataMax + 5) / 5) * 5;
+        if (dMin < 0) dMin = 0;
+        if (dMin === dMax) dMax = dMin + 10;
         const dRange = dMax - dMin;
 
         const dToY = (val) => dBottom - ((val - dMin) / dRange) * DEBT_HEIGHT;
 
-        // 网格线
-        [40, 50, 60, 70].forEach(gv => {
+        // ====== 動態網格線（每 10% 一條）======
+        const gridStep = 10;
+        const gridStart = Math.ceil(dMin / gridStep) * gridStep;
+        for (let gv = gridStart; gv <= dMax; gv += gridStep) {
             const gy = dToY(gv);
             ctx.beginPath();
             ctx.setLineDash([2, 3]);
@@ -1842,35 +1851,74 @@ const DEBT_HEIGHT = 50;
             ctx.textAlign = 'right';
             ctx.textBaseline = 'middle';
             ctx.fillText(gv + '%', canvas.width - 22, gy);
-        });
+        }
 
-        // 柱状图
+        // ====== 顏色函數：根據負債比率高低 ======
+        const getDebtColor = (ratio) => {
+            if (ratio < 0.4) return '#22c55e';        // 綠：<40%，財務穩健
+            if (ratio < 0.6) return '#fbbf24';        // 黃：40-60%，合理區間
+            if (ratio < 0.8) return '#f97316';        // 橙：60-80%，偏高
+            return '#ef4444';                          // 紅：>80%，危險
+        };
+
+        // ====== 折線（分段上色）======
+        for (let i = 0; i < debtData.length - 1; i++) {
+            const curr = debtData[i];
+            const next = debtData[i + 1];
+
+            const currIdx = fullData.findIndex(d => d.date >= curr.date);
+            const nextIdx = fullData.findIndex(d => d.date >= next.date);
+            if (currIdx < 0 || nextIdx < 0) continue;
+            if (currIdx >= visibleCount && cursorIndex < currIdx) continue;
+
+            const x1 = paddingLeft + currIdx * stepX;
+            const y1 = dToY(curr.debtRatio * 100);
+            const x2 = paddingLeft + nextIdx * stepX;
+            const y2 = dToY(next.debtRatio * 100);
+
+            // 用兩點的平均值決定線段顏色
+            const avgRatio = (curr.debtRatio + next.debtRatio) / 2;
+            ctx.beginPath();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = getDebtColor(avgRatio);
+            ctx.lineJoin = 'round';
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+
+        // ====== 數據點 + 數值 ======
         debtData.forEach(item => {
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
             if (idx >= visibleCount && cursorIndex < idx) return;
 
             const x = paddingLeft + idx * stepX;
-            const barWidth = Math.max(14, stepX * 35);
-            const barTop = dToY(item.debtRatio * 100);
+            const y = dToY(item.debtRatio * 100);
+            const color = getDebtColor(item.debtRatio);
 
-            // 柱体：颜色根据比率高低
-            let color;
-            if (item.debtRatio < 0.5) color = 'rgba(34, 197, 94, 0.7)';       // 绿：<50%
-            else if (item.debtRatio < 0.6) color = 'rgba(251, 191, 36, 0.7)';  // 黄：50-60%
-            else color = 'rgba(239, 68, 68, 0.7)';                             // 红：>60%
+            // 數據點
+            ctx.beginPath();
+            ctx.arc(x, y, 3.5, 0, 2 * Math.PI);
             ctx.fillStyle = color;
-            ctx.fillRect(x - barWidth / 2, barTop, barWidth, dBottom - barTop);
+            ctx.fill();
 
-            // 数值
+            // 白色外圈，讓點更清晰
+            ctx.beginPath();
+            ctx.arc(x, y, 3.5, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'rgba(17, 24, 39, 0.8)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // 數值標籤
             ctx.font = 'bold 9px monospace';
-            ctx.fillStyle = '#fdba74';
+            ctx.fillStyle = color;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'bottom';
-            ctx.fillText((item.debtRatio * 100).toFixed(1) + '%', x, barTop - 2);
+            ctx.fillText((item.debtRatio * 100).toFixed(1) + '%', x, y - 6);
         });
 
-        // 标签
+        // 標籤
         ctx.font = '10px monospace';
         ctx.fillStyle = '#f97316';
         ctx.textAlign = 'left';
