@@ -18,16 +18,15 @@
             overflow-x: hidden;
         }
 
-                .app-wrapper {
+                      .app-wrapper {
             display: flex;
             align-items: stretch;
             gap: 20px;
             position: relative;
             transition: all 0.3s ease;
-            height: 880px;
         }
 
-                .sidebar {
+                     .sidebar {
             background-color: #1f2937;
             border-radius: 8px;
             padding: 20px;
@@ -36,8 +35,6 @@
             transition: transform 0.3s ease, opacity 0.3s ease, width 0.3s ease, padding 0.3s ease, margin 0.3s ease;
             flex-shrink: 0;
             overflow-y: auto;
-            height: 100%;
-            box-sizing: border-box;
         }
         .sidebar.collapsed {
             width: 0;
@@ -256,17 +253,13 @@
             margin-top: 6px;
         }
 
-               .chart-container {
+                    .chart-container {
             background-color: #1f2937;
             border-radius: 8px;
             padding: 20px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             width: 800px;
             transition: width 0.3s ease;
-            height: 100%;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
         }
         .chart-container.expanded { width: 1040px; }
 
@@ -384,7 +377,7 @@
         .legend-item { display: flex; align-items: center; gap: 6px; }
         .legend-color { width: 16px; height: 3px; border-radius: 2px; }
 
-                .event-panel {
+                    .event-panel {
             background-color: #1f2937;
             border-radius: 8px;
             padding: 0;
@@ -394,14 +387,6 @@
             transition: width 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
             flex-shrink: 0;
             overflow: hidden;
-            height: 100%;
-            box-sizing: border-box;
-        }
-        .event-panel.open {
-            width: 320px;
-            padding: 20px;
-            opacity: 1;
-            overflow-y: auto;
         }
         .event-panel.open {
             width: 320px;
