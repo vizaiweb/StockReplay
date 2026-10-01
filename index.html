@@ -332,6 +332,22 @@
         button.margin-btn.active { background-color: #22d3ee; }
         button.valuation-btn.active { background-color: #f59e0b; }
 
+                button.cashflow-btn {
+            background-color: #374151;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button.cashflow-btn:hover {
+            background-color: #4b5563;
+        }
+        button.cashflow-btn.active {
+            background-color: #10b981;
+        }
+        
         .legend {
             display: flex;
             gap: 16px;
@@ -553,6 +569,7 @@
             <button class="roe-btn" id="roeBtn">📊 ROE</button>
             <button class="margin-btn" id="marginBtn">📈 利潤率</button>
             <button class="valuation-btn" id="valuationBtn">📉 P/E P/B</button>
+            <button class="cashflow-btn" id="cashflowBtn">💵 現金流</button>
         </div>
     </div>
 
@@ -662,6 +679,16 @@
         drawChart();
     });
 
+        cashflowBtn.addEventListener('click', () => {
+        cashflowVisible = !cashflowVisible;
+        if (cashflowVisible) {
+            cashflowBtn.classList.add('active');
+        } else {
+            cashflowBtn.classList.remove('active');
+        }
+        drawChart();
+    });
+
     let frameDelay = 180;
 
     function updateSpeed() {
@@ -730,6 +757,8 @@
     let revealedEvents = new Set();
     let cursorIndex = -1;
     let quarterMarkerDate = null;   // 垂直光柱日期
+    let cashflowVisible = false;
+const CASHFLOW_HEIGHT = 60;
 
 
         // ====== 根據當前日期點亮對應的季度圓點 ======
