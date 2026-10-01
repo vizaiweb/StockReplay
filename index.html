@@ -454,7 +454,7 @@
 <button class="toggle-btn" id="toggleBtn">☰</button>
 <button class="event-toggle-btn" id="eventToggleBtn">📰 事件</button>
 
-    <button class="debt-btn" id="debtBtn">📉 負債比率</button>
+    
 
 <div class="app-wrapper">
 
@@ -588,6 +588,7 @@
             <button class="margin-btn" id="marginBtn">📈 利潤率</button>
             <button class="valuation-btn" id="valuationBtn">📉 P/E P/B</button>
             <button class="cashflow-btn" id="cashflowBtn">💵 現金流</button>
+                        <button class="debt-btn" id="debtBtn">📉 負債比率</button>
         </div>
     </div>
 
@@ -628,6 +629,7 @@
     const eventPanel = document.getElementById('eventPanel');
     const eventList = document.getElementById('eventList');
     const eventToggleBtn = document.getElementById('eventToggleBtn');
+        const debtBtn = document.getElementById('debtBtn');
 
     // ====== 圖表區域高度分配 ======
     const PRICE_HEIGHT = 280;
