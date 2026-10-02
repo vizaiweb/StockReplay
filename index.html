@@ -449,45 +449,75 @@
         }
         .event-toggle-btn:hover { background-color: #4b5563; }
 
-                /* 綜合分析報告 */
+                       /* 綜合分析報告 */
         .analysis-report {
             margin-top: 20px;
             padding-top: 20px;
             border-top: 1px solid rgba(75, 85, 99, 0.5);
         }
-        .analysis-report h3 {
-            margin: 0 0 16px 0;
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .report-header h3 {
+            margin: 0;
             font-size: 15px;
             color: #d1d5db;
             font-weight: 600;
         }
-        .report-section {
-            background-color: #111827;
-            border-radius: 6px;
-            padding: 12px 14px;
-            margin-bottom: 10px;
-            border-left: 3px solid #4b5563;
-            transition: border-left-color 0.2s ease;
+
+        /* 字體大小切換控件 */
+        .font-size-control {
+            display: flex;
+            gap: 4px;
         }
-        .report-section:hover {
-            border-left-color: #f59e0b;
-        }
-        .report-section-title {
-            font-size: 12px;
-            color: #fbbf24;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        .report-section-content {
+        .font-btn {
+            background-color: #374151;
+            color: #9ca3af;
+            border: 1px solid #4b5563;
+            border-radius: 4px;
+            padding: 3px 10px;
+            cursor: pointer;
             font-size: 11px;
-            color: #d1d5db;
+            transition: all 0.2s ease;
+        }
+        .font-btn:hover {
+            background-color: #4b5563;
+            color: #e5e7eb;
+        }
+        .font-btn.active {
+            background-color: #f59e0b;
+            color: #111827;
+            border-color: #f59e0b;
+            font-weight: bold;
+        }
+
+        /* 三檔字體大小 */
+        .analysis-report.font-small .report-section-content {
+            font-size: 10px;
+            line-height: 1.6;
+        }
+        .analysis-report.font-small .report-section-title {
+            font-size: 11px;
+        }
+
+        .analysis-report.font-medium .report-section-content {
+            font-size: 12px;
             line-height: 1.7;
         }
-        .report-loading {
-            font-size: 11px;
-            color: #6b7280;
-            text-align: center;
-            padding: 20px;
+        .analysis-report.font-medium .report-section-title {
+            font-size: 13px;
+        }
+
+        .analysis-report.font-large .report-section-content {
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .analysis-report.font-large .report-section-title {
+            font-size: 15px;
         }
         
     </style>
@@ -693,9 +723,16 @@
             <button class="debt-btn" id="debtBtn">📉 負債比率</button>
         </div>
 
-                <!-- 綜合分析報告 -->
+                       <!-- 綜合分析報告 -->
         <div class="analysis-report">
-            <h3>📋 綜合分析報告</h3>
+            <div class="report-header">
+                <h3>📋 綜合分析報告</h3>
+                <div class="font-size-control">
+                    <button class="font-btn" data-size="small">小</button>
+                    <button class="font-btn active" data-size="medium">中</button>
+                    <button class="font-btn" data-size="large">大</button>
+                </div>
+            </div>
             <div id="reportContent">
                 <div class="report-loading">載入中...</div>
             </div>
@@ -1216,6 +1253,30 @@ const DEBT_HEIGHT = 50;
                 <div class="report-section-content">${section.content}</div>
             `;
             container.appendChild(div);
+        });
+    }
+
+        // ====== 字體大小切換 ======
+    function initFontSizeControl() {
+        const reportEl = document.querySelector('.analysis-report');
+        const buttons = document.querySelectorAll('.font-btn');
+
+        // 默认中
+        reportEl.classList.add('font-medium');
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const size = btn.dataset.size;
+
+                // 移除所有大小 class
+                reportEl.classList.remove('font-small', 'font-medium', 'font-large');
+                // 加上新的大小 class
+                reportEl.classList.add('font-' + size);
+
+                // 更新按钮 active 状态
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
         });
     }
 
@@ -2670,6 +2731,9 @@ const DEBT_HEIGHT = 50;
     }
 
     loadStockLists();
+
+        loadStockLists();
+    initFontSizeControl();
 </script>
 
 </body>
