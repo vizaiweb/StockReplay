@@ -525,29 +525,29 @@
             padding: 20px;
         }
 
-        /* 三檔字體大小 */
+                /* 三檔字體大小 */
         .analysis-report.font-small .report-section-content {
-            font-size: 10px;
-            line-height: 1.6;
-        }
-        .analysis-report.font-small .report-section-title {
-            font-size: 11px;
-        }
-
-        .analysis-report.font-medium .report-section-content {
             font-size: 12px;
             line-height: 1.7;
         }
-        .analysis-report.font-medium .report-section-title {
+        .analysis-report.font-small .report-section-title {
             font-size: 13px;
         }
 
-        .analysis-report.font-large .report-section-content {
+        .analysis-report.font-medium .report-section-content {
             font-size: 14px;
             line-height: 1.8;
         }
-        .analysis-report.font-large .report-section-title {
+        .analysis-report.font-medium .report-section-title {
             font-size: 15px;
+        }
+
+        .analysis-report.font-large .report-section-content {
+            font-size: 16px;
+            line-height: 1.9;
+        }
+        .analysis-report.font-large .report-section-title {
+            font-size: 17px;
         }
     </style>
 </head>
@@ -756,9 +756,9 @@
         <div class="analysis-report">
             <div class="report-header">
                 <h3>📋 綜合分析報告</h3>
-                <div class="font-size-control">
-                    <button class="font-btn" data-size="small">小</button>
-                    <button class="font-btn active" data-size="medium">中</button>
+                                <div class="font-size-control">
+                    <button class="font-btn active" data-size="small">小</button>
+                    <button class="font-btn" data-size="medium">中</button>
                     <button class="font-btn" data-size="large">大</button>
                 </div>
             </div>
@@ -1286,23 +1286,17 @@ const DEBT_HEIGHT = 50;
     }
 
         // ====== 字體大小切換 ======
-    function initFontSizeControl() {
+       function initFontSizeControl() {
         const reportEl = document.querySelector('.analysis-report');
         const buttons = document.querySelectorAll('.font-btn');
 
-        // 默认中
-        reportEl.classList.add('font-medium');
+        reportEl.classList.add('font-small');   // ← 默认「小」
 
         buttons.forEach(btn => {
             btn.addEventListener('click', () => {
                 const size = btn.dataset.size;
-
-                // 移除所有大小 class
                 reportEl.classList.remove('font-small', 'font-medium', 'font-large');
-                // 加上新的大小 class
                 reportEl.classList.add('font-' + size);
-
-                // 更新按钮 active 状态
                 buttons.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
             });
