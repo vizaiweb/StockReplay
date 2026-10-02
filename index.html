@@ -448,6 +448,48 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         .event-toggle-btn:hover { background-color: #4b5563; }
+
+                /* 綜合分析報告 */
+        .analysis-report {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(75, 85, 99, 0.5);
+        }
+        .analysis-report h3 {
+            margin: 0 0 16px 0;
+            font-size: 15px;
+            color: #d1d5db;
+            font-weight: 600;
+        }
+        .report-section {
+            background-color: #111827;
+            border-radius: 6px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            border-left: 3px solid #4b5563;
+            transition: border-left-color 0.2s ease;
+        }
+        .report-section:hover {
+            border-left-color: #f59e0b;
+        }
+        .report-section-title {
+            font-size: 12px;
+            color: #fbbf24;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .report-section-content {
+            font-size: 11px;
+            color: #d1d5db;
+            line-height: 1.7;
+        }
+        .report-loading {
+            font-size: 11px;
+            color: #6b7280;
+            text-align: center;
+            padding: 20px;
+        }
+        
     </style>
 </head>
 <body>
@@ -648,8 +690,17 @@
             <button class="margin-btn" id="marginBtn">📈 利潤率</button>
             <button class="valuation-btn" id="valuationBtn">📉 P/E P/B</button>
             <button class="cashflow-btn" id="cashflowBtn">💵 現金流</button>
-                        <button class="debt-btn" id="debtBtn">📉 負債比率</button>
+            <button class="debt-btn" id="debtBtn">📉 負債比率</button>
         </div>
+
+                <!-- 綜合分析報告 -->
+        <div class="analysis-report">
+            <h3>📋 綜合分析報告</h3>
+            <div id="reportContent">
+                <div class="report-loading">載入中...</div>
+            </div>
+        </div>
+        
     </div>
 
     <div class="event-panel" id="eventPanel">
@@ -1059,6 +1110,7 @@ const DEBT_HEIGHT = 50;
             await loadROE(market, stockInfo);
             await loadMargins(market, stockInfo);
             await loadValuation(market, stockInfo);
+            await loadReport(market, stockInfo);
 
             buildQuarterBar();
             renderEventList();
@@ -1129,6 +1181,42 @@ const DEBT_HEIGHT = 50;
             console.warn('估值資料載入失敗:', err);
             valuationData = [];
         }
+    }
+
+        let reportData = null;
+
+    async function loadReport(market, stockInfo) {
+        const reportPath = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_report.json`;
+        try {
+            const res = await fetch(reportPath);
+            if (!res.ok) throw new Error('報告檔不存在');
+            reportData = await res.json();
+            renderReport();
+        } catch (err) {
+            console.warn('綜合分析報告載入失敗:', err);
+            reportData = null;
+            document.getElementById('reportContent').innerHTML =
+                '<div class="report-loading">暫無報告數據</div>';
+        }
+    }
+
+    function renderReport() {
+        const container = document.getElementById('reportContent');
+        if (!reportData || !reportData.sections) {
+            container.innerHTML = '<div class="report-loading">暫無報告數據</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        reportData.sections.forEach(section => {
+            const div = document.createElement('div');
+            div.className = 'report-section';
+            div.innerHTML = `
+                <div class="report-section-title">${section.title}</div>
+                <div class="report-section-content">${section.content}</div>
+            `;
+            container.appendChild(div);
+        });
     }
 
     // ====== 生成季度切換圓點 ======
