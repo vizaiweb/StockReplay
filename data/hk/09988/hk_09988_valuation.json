@@ -1,0 +1,110 @@
+[
+  {
+    "date": "2023-03-31",
+    "period": "FY2023",
+    "pe": 21.35,
+    "pb": null,
+    "evEbitda": 7.4,
+    "peg": null,
+    "operatingCashFlow": 1997.52,
+    "cashReserve": null,
+    "debtRatio": 0.54,
+    "comment": "截至2023年3月31日财年，经营现金流1997.52亿元。"
+  },
+  {
+    "date": "2023-09-30",
+    "period": "H1 FY2024",
+    "pe": null,
+    "pb": null,
+    "evEbitda": null,
+    "peg": null,
+    "operatingCashFlow": null,
+    "cashReserve": null,
+    "debtRatio": null,
+    "comment": "中期数据暂未获取。"
+  },
+  {
+    "date": "2024-03-31",
+    "period": "FY2024",
+    "pe": 18.71,
+    "pb": null,
+    "evEbitda": 3.5,
+    "peg": null,
+    "operatingCashFlow": 1825.93,
+    "cashReserve": null,
+    "debtRatio": 0.56,
+    "comment": "FY2024经营现金流1825.93亿元，同比下降8.6%。EV/EBITDA降至5年低点3.5倍。"
+  },
+  {
+    "date": "2024-09-30",
+    "period": "H1 FY2025",
+    "pe": null,
+    "pb": null,
+    "evEbitda": 15.55,
+    "peg": 1.80,
+    "operatingCashFlow": null,
+    "cashReserve": null,
+    "debtRatio": null,
+    "comment": "中期数据暂未获取。EV/EBITDA回升至15.55倍。"
+  },
+  {
+    "date": "2025-03-31",
+    "period": "FY2025",
+    "pe": 21.00,
+    "pb": null,
+    "evEbitda": 8.2,
+    "peg": 0.89,
+    "operatingCashFlow": 1635.09,
+    "cashReserve": null,
+    "debtRatio": 0.52,
+    "comment": "FY2025经营现金流1635.09亿元，同比下降10%。AI+云业务加速增长，AI相关产品收入连续七季度三位数增长。"
+  },
+  {
+    "date": "2025-09-30",
+    "period": "H1 FY2026",
+    "pe": 19.63,
+    "pb": null,
+    "evEbitda": 14.61,
+    "peg": 1.89,
+    "operatingCashFlow": null,
+    "cashReserve": null,
+    "debtRatio": null,
+    "comment": "中期数据暂未获取。EV/EBITDA 14.61倍，估值处于历史高位。"
+  },
+  {
+    "date": "2025-12-31",
+    "period": "Q3 FY2026",
+    "pe": 21.69,
+    "pb": null,
+    "evEbitda": 14.44,
+    "peg": 1.97,
+    "operatingCashFlow": 360.32,
+    "cashReserve": 4745.05,
+    "debtRatio": null,
+    "comment": "季度经营现金流360.32亿元，同比下降49%。净利润同比下降66%，主要因即时零售和AI投入加大。现金及其他流动投资4745.05亿元。"
+  },
+  {
+    "date": "2026-03-31",
+    "period": "FY2026",
+    "pe": 14.63,
+    "pb": null,
+    "evEbitda": 14.44,
+    "peg": 0.39,
+    "operatingCashFlow": 762.13,
+    "cashReserve": null,
+    "debtRatio": null,
+    "comment": "FY2026全年经营现金流762.13亿元。PEG降至0.39，估值相对增长具吸引力。"
+  },
+  {
+    "date": "2026-06-30",
+    "period": "Q1 FY2027",
+    "pe": 14.63,
+    "pb": null,
+    "evEbitda": 8.10,
+    "peg": 0.39,
+    "operatingCashFlow": 229.45,
+    "cashReserve": 4745.05,
+    "debtRatio": null,
+    "comment": "季度经营现金流229.45亿元，同比增长11%。自由现金流净流出446.70亿元，主要因云基础设施支出增加。现金及其他流动投资4745.05亿元。"
+  }
+]
