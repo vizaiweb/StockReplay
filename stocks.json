@@ -1,6 +1,7 @@
 {
   "hk": [
-    { "code": "01024", "name": "快手", "file": "hk_01024_price.json", "folder": "01024" }
+    { "code": "01024", "name": "快手", "folder": "01024" },
+    { "code": "09988", "name": "阿里巴巴", "folder": "09988" }
   ],
   "us": [],
   "zh": []
