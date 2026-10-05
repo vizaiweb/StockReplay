@@ -1,0 +1,58 @@
+[
+  {
+    "date": "2022-03-31",
+    "period": "FY2022",
+    "grossMargin": 36.76,
+    "adjustedNetMargin": 15.99,
+    "note": "經調整淨利潤1363.88億，營收8530.62億"
+  },
+  {
+    "date": "2023-03-31",
+    "period": "FY2023",
+    "grossMargin": 36.72,
+    "adjustedNetMargin": 16.27,
+    "note": "經調整淨利潤1413.79億，營收8686.87億"
+  },
+  {
+    "date": "2023-09-30",
+    "period": "H1 FY2024",
+    "grossMargin": null,
+    "adjustedNetMargin": 12.79,
+    "note": "經調整淨利潤640.72億，營收約5009.9億"
+  },
+  {
+    "date": "2024-03-31",
+    "period": "FY2024",
+    "grossMargin": 37.70,
+    "adjustedNetMargin": 16.73,
+    "note": "經調整淨利潤1574.79億，營收9411.68億"
+  },
+  {
+    "date": "2024-09-30",
+    "period": "H1 FY2025",
+    "grossMargin": null,
+    "adjustedNetMargin": 15.58,
+    "note": "經調整淨利潤772.09億，營收約4954.47億"
+  },
+  {
+    "date": "2025-03-31",
+    "period": "FY2025",
+    "grossMargin": 39.95,
+    "adjustedNetMargin": 15.87,
+    "note": "經調整淨利潤1581.22億，營收9963.47億"
+  },
+  {
+    "date": "2025-09-30",
+    "period": "H1 FY2026",
+    "grossMargin": null,
+    "adjustedNetMargin": 8.85,
+    "note": "經調整淨利潤438.62億，營收4954.47億"
+  },
+  {
+    "date": "2026-03-31",
+    "period": "FY2026",
+    "grossMargin": 39.81,
+    "adjustedNetMargin": 10.12,
+    "note": "淨利潤1035.92億，營收10236.70億"
+  }
+]
