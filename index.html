@@ -1806,28 +1806,23 @@ const DEBT_HEIGHT = 50;
         });
     }
 
+
+    
     function getROETop() {
         return PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
     }
 
-    function getMarginsBottom() {
-        let marginTop;
-        if (roeVisible) {
-            marginTop = getROETop() + ROE_HEIGHT + GAP;
-        } else {
-            marginTop = PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
-        }
-        return marginTop + MARGIN_HEIGHT;
+       function getMarginsTop() {
+        let top = PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
+        if (roeVisible) top += ROE_HEIGHT + GAP;
+        return top;
     }
 
-    function getValuationTop() {
-        if (marginVisible) {
-            return getMarginsBottom() + GAP;
-        } else if (roeVisible) {
-            return getROETop() + ROE_HEIGHT + GAP;
-        } else {
-            return PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
-        }
+           function getValuationTop() {
+        let top = PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
+        if (roeVisible) top += ROE_HEIGHT + GAP;
+        if (marginVisible) top += MARGIN_HEIGHT + GAP;
+        return top;
     }
 
     function drawROEChart(paddingLeft, plotWidth, stepX) {
@@ -1890,10 +1885,10 @@ const DEBT_HEIGHT = 50;
         ctx.fillText('加權平均 ROE', paddingLeft + 2, roeTop + 2);
     }
 
-    function drawMarginsChart(paddingLeft, plotWidth, stepX) {
+       function drawMarginsChart(paddingLeft, plotWidth, stepX) {
         if (marginsData.length === 0) return;
 
-        let marginTop;
+        const marginTop = getMarginsTop();
         if (roeVisible) {
             marginTop = getROETop() + ROE_HEIGHT + GAP;
         } else {
@@ -2015,9 +2010,10 @@ const DEBT_HEIGHT = 50;
         ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
         ctx.fillRect(paddingLeft, peTop, plotWidth, PE_HEIGHT);
 
-        const peVals = valuationData.map(d => d.pe);
-        const peMax = Math.max(...peVals, 25);
-        const peMin = Math.min(...peVals, 0);
+        const peVals = valuationData.filter(d => d.pe != null).map(d => d.pe);
+const peMax = peVals.length > 0 ? Math.max(...peVals, 25) : 25;
+const peMin = peVals.length > 0 ? Math.min(...peVals, 0) : 0;
+        
         const peRange = peMax - peMin || 1;
         const peToY = (val) => peBottom - ((val - peMin) / peRange) * PE_HEIGHT;
 
@@ -2067,9 +2063,9 @@ const DEBT_HEIGHT = 50;
         ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
         ctx.fillRect(paddingLeft, pbTop, plotWidth, PB_HEIGHT);
 
-        const pbVals = valuationData.map(d => d.pb);
-        const pbMax = Math.max(...pbVals, 5);
-        const pbMin = Math.min(...pbVals, 0);
+        const pbVals = valuationData.filter(d => d.pb != null).map(d => d.pb);
+const pbMax = pbVals.length > 0 ? Math.max(...pbVals, 5) : 5;
+const pbMin = pbVals.length > 0 ? Math.min(...pbVals, 0) : 0;
         const pbRange = pbMax - pbMin || 1;
         const pbToY = (val) => pbBottom - ((val - pbMin) / pbRange) * PB_HEIGHT;
 
@@ -2117,19 +2113,11 @@ const DEBT_HEIGHT = 50;
     }
 
 
-          function getCashflowTop() {
+             function getCashflowTop() {
         let top = PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
-
-        if (roeVisible) {
-            top += ROE_HEIGHT + GAP;
-        }
-        if (marginVisible) {
-            top += MARGIN_HEIGHT + GAP;
-        }
-        if (valuationVisible) {
-            top += VALUATION_HEIGHT + GAP;
-        }
-
+        if (roeVisible) top += ROE_HEIGHT + GAP;
+        if (marginVisible) top += MARGIN_HEIGHT + GAP;
+        if (valuationVisible) top += VALUATION_HEIGHT + GAP;
         return top;
     }
 
@@ -2210,22 +2198,12 @@ const DEBT_HEIGHT = 50;
         ctx.fillText('可支配現金(彈藥) / 億元', paddingLeft + 120, cfTop + 2);
     }
 
-           function getDebtTop() {
+               function getDebtTop() {
         let top = PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
-
-        if (roeVisible) {
-            top += ROE_HEIGHT + GAP;
-        }
-        if (marginVisible) {
-            top += MARGIN_HEIGHT + GAP;
-        }
-        if (valuationVisible) {
-            top += VALUATION_HEIGHT + GAP;
-        }
-        if (cashflowVisible) {
-            top += CASHFLOW_HEIGHT + GAP;
-        }
-
+        if (roeVisible) top += ROE_HEIGHT + GAP;
+        if (marginVisible) top += MARGIN_HEIGHT + GAP;
+        if (valuationVisible) top += VALUATION_HEIGHT + GAP;
+        if (cashflowVisible) top += CASHFLOW_HEIGHT + GAP;
         return top;
     }
 
