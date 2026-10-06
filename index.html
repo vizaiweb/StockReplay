@@ -1899,11 +1899,10 @@ if (latestMargin) {
         ctx.fillText('加權平均 ROE', paddingLeft + 2, roeTop + 2);
     }
 
-       function drawMarginsChart(paddingLeft, plotWidth, stepX) {
+           function drawMarginsChart(paddingLeft, plotWidth, stepX) {
         if (marginsData.length === 0) return;
 
         const marginTop = getMarginsTop();
-        
 
         const GM_HEIGHT = 35;
         const NM_HEIGHT = 35;
@@ -1914,144 +1913,113 @@ if (latestMargin) {
         const nmTop = gmBottom + SUB_GAP;
         const nmBottom = nmTop + NM_HEIGHT;
 
+        // ====== 毛利率子圖 ======
         ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
         ctx.fillRect(paddingLeft, gmTop, plotWidth, GM_HEIGHT);
 
-        const gmVals = marginsData.map(d => d.grossMargin);
-        const gmMax = Math.max(...gmVals, 60);
-        const gmMin = Math.min(...gmVals, 0);
-        const gmRange = gmMax - gmMin || 1;
-        const gmToY = (val) => gmBottom - ((val - gmMin) / gmRange) * GM_HEIGHT;
+        const gmData = marginsData.filter(d => d.grossMargin != null);
 
-           const gmData = marginsData.filter(d => d.grossMargin != null);   // ← 新增
-    if (gmData.length === 0) {                                       // ← 新增
-        // 沒有毛利率數據就只畫標題
-        ctx.font = '10px monospace';
-        ctx.fillStyle = '#60a5fa';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText('毛利率（無數據）', paddingLeft + 2, gmTop + 2);
-    } else {
-        const gmVals = gmData.map(d => d.grossMargin);                // ← 改來源
-        const gmMax = Math.max(...gmVals, 60);
-        const gmMin = Math.min(...gmVals, 0);
-        const gmRange = gmMax - gmMin || 1;
-        const gmToY = (val) => gmBottom - ((val - gmMin) / gmRange) * GM_HEIGHT;
+        if (gmData.length === 0) {
+            ctx.font = '10px monospace';
+            ctx.fillStyle = '#60a5fa';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText('毛利率（無數據）', paddingLeft + 2, gmTop + 2);
+        } else {
+            const gmVals = gmData.map(d => d.grossMargin);
+            const gmMax = Math.max(...gmVals, 60);
+            const gmMin = Math.min(...gmVals, 0);
+            const gmRange = gmMax - gmMin || 1;
+            const gmToY = (val) => gmBottom - ((val - gmMin) / gmRange) * GM_HEIGHT;
 
-        gmData.forEach(item => {                                      // ← 改來源
-            const idx = fullData.findIndex(d => d.date >= item.date);
-            if (idx < 0) return;
-            if (idx >= visibleCount && cursorIndex < idx) return;
+            gmData.forEach(item => {
+                const idx = fullData.findIndex(d => d.date >= item.date);
+                if (idx < 0) return;
+                if (idx >= visibleCount && cursorIndex < idx) return;
 
-            const x = paddingLeft + idx * stepX;
-            const barWidth = Math.max(12, stepX * 30);
-            const barTop = gmToY(item.grossMargin);
+                const x = paddingLeft + idx * stepX;
+                const barWidth = Math.max(12, stepX * 30);
+                const barTop = gmToY(item.grossMargin);
 
-            ctx.fillStyle = 'rgba(96, 165, 250, 0.7)';
-            ctx.fillRect(x - barWidth / 2, barTop, barWidth, gmBottom - barTop);
+                ctx.fillStyle = 'rgba(96, 165, 250, 0.7)';
+                ctx.fillRect(x - barWidth / 2, barTop, barWidth, gmBottom - barTop);
 
-            ctx.font = 'bold 9px monospace';
-            ctx.fillStyle = '#93c5fd';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'bottom';
-            ctx.fillText(item.grossMargin.toFixed(1) + '%', x, barTop - 2);
-        });
+                ctx.font = 'bold 9px monospace';
+                ctx.fillStyle = '#93c5fd';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(item.grossMargin.toFixed(1) + '%', x, barTop - 2);
+            });
 
-        ctx.font = '10px monospace';
-        ctx.fillStyle = '#60a5fa';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText('毛利率', paddingLeft + 2, gmTop + 2);
-    });
+            ctx.font = '10px monospace';
+            ctx.fillStyle = '#60a5fa';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText('毛利率', paddingLeft + 2, gmTop + 2);
+        }
 
-        ctx.font = '10px monospace';
-        ctx.fillStyle = '#60a5fa';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText('毛利率', paddingLeft + 2, gmTop + 2);
-
+        // ====== 經調整淨利率子圖 ======
         ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
         ctx.fillRect(paddingLeft, nmTop, plotWidth, NM_HEIGHT);
 
-        const nmVals = marginsData.map(d => d.adjustedNetMargin);
-        const nmMax = Math.max(...nmVals, 20);
-        const nmMin = Math.min(...nmVals, -30);
-        const nmRange = nmMax - nmMin || 1;
-        const nmToY = (val) => nmBottom - ((val - nmMin) / nmRange) * NM_HEIGHT;
-        const zeroY = nmToY(0);
+        const nmData = marginsData.filter(d => d.adjustedNetMargin != null);
 
-        ctx.beginPath();
-        ctx.strokeStyle = 'rgba(156, 163, 175, 0.6)';
-        ctx.lineWidth = 1;
-        ctx.moveTo(paddingLeft, zeroY);
-        ctx.lineTo(canvas.width - 20, zeroY);
-        ctx.stroke();
+        if (nmData.length === 0) {
+            ctx.font = '10px monospace';
+            ctx.fillStyle = '#22d3ee';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText('經調整淨利率（無數據）', paddingLeft + 2, nmTop + 2);
+        } else {
+            const nmVals = nmData.map(d => d.adjustedNetMargin);
+            const nmMax = Math.max(...nmVals, 20);
+            const nmMin = Math.min(...nmVals, -30);
+            const nmRange = nmMax - nmMin || 1;
+            const nmToY = (val) => nmBottom - ((val - nmMin) / nmRange) * NM_HEIGHT;
+            const zeroY = nmToY(0);
 
-            const nmData = marginsData.filter(d => d.adjustedNetMargin != null);   // ← 新增
-    if (nmData.length === 0) {
-        ctx.font = '10px monospace';
-        ctx.fillStyle = '#22d3ee';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText('經調整淨利率（無數據）', paddingLeft + 2, nmTop + 2);
-    } else {
-        const nmVals = nmData.map(d => d.adjustedNetMargin);               // ← 改來源
-        const nmMax = Math.max(...nmVals, 20);
-        const nmMin = Math.min(...nmVals, -30);
-        const nmRange = nmMax - nmMin || 1;
-        const nmToY = (val) => nmBottom - ((val - nmMin) / nmRange) * NM_HEIGHT;
-        const zeroY = nmToY(0);
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(156, 163, 175, 0.6)';
+            ctx.lineWidth = 1;
+            ctx.moveTo(paddingLeft, zeroY);
+            ctx.lineTo(canvas.width - 20, zeroY);
+            ctx.stroke();
 
-        ctx.beginPath();
-        ctx.strokeStyle = 'rgba(156, 163, 175, 0.6)';
-        ctx.lineWidth = 1;
-        ctx.moveTo(paddingLeft, zeroY);
-        ctx.lineTo(canvas.width - 20, zeroY);
-        ctx.stroke();
+            nmData.forEach(item => {
+                const idx = fullData.findIndex(d => d.date >= item.date);
+                if (idx < 0) return;
+                if (idx >= visibleCount && cursorIndex < idx) return;
 
-        nmData.forEach(item => {                                           // ← 改來源
-            const idx = fullData.findIndex(d => d.date >= item.date);
-            if (idx < 0) return;
-            if (idx >= visibleCount && cursorIndex < idx) return;
+                const x = paddingLeft + idx * stepX;
+                const barWidth = Math.max(12, stepX * 30);
+                const valY = nmToY(item.adjustedNetMargin);
 
-            const x = paddingLeft + idx * stepX;
-            const barWidth = Math.max(12, stepX * 30);
-            const valY = nmToY(item.adjustedNetMargin);
+                const barTop = Math.min(zeroY, valY);
+                const barHeight = Math.abs(zeroY - valY);
 
-            const barTop = Math.min(zeroY, valY);
-            const barHeight = Math.abs(zeroY - valY);
+                ctx.fillStyle = item.adjustedNetMargin >= 0
+                    ? 'rgba(34, 211, 238, 0.7)'
+                    : 'rgba(239, 68, 68, 0.7)';
+                ctx.fillRect(x - barWidth / 2, barTop, barWidth, Math.max(2, barHeight));
 
-            ctx.fillStyle = item.adjustedNetMargin >= 0
-                ? 'rgba(34, 211, 238, 0.7)'
-                : 'rgba(239, 68, 68, 0.7)';
-            ctx.fillRect(x - barWidth / 2, barTop, barWidth, Math.max(2, barHeight));
+                ctx.font = 'bold 9px monospace';
+                ctx.fillStyle = item.adjustedNetMargin >= 0 ? '#67e8f9' : '#fca5a5';
+                ctx.textAlign = 'center';
+                if (item.adjustedNetMargin >= 0) {
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(item.adjustedNetMargin.toFixed(1) + '%', x, barTop - 2);
+                } else {
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(item.adjustedNetMargin.toFixed(1) + '%', x, barTop + barHeight + 2);
+                }
+            });
 
-            ctx.font = 'bold 9px monospace';
-            ctx.fillStyle = item.adjustedNetMargin >= 0 ? '#67e8f9' : '#fca5a5';
-            ctx.textAlign = 'center';
-            if (item.adjustedNetMargin >= 0) {
-                ctx.textBaseline = 'bottom';
-                ctx.fillText(item.adjustedNetMargin.toFixed(1) + '%', x, barTop - 2);
-            } else {
-                ctx.textBaseline = 'top';
-                ctx.fillText(item.adjustedNetMargin.toFixed(1) + '%', x, barTop + barHeight + 2);
-            }
-        });
-
-        ctx.font = '10px monospace';
-        ctx.fillStyle = '#22d3ee';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText('經調整淨利率', paddingLeft + 2, nmTop + 2);
-    });
-
-        ctx.font = '10px monospace';
-        ctx.fillStyle = '#22d3ee';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText('經調整淨利率', paddingLeft + 2, nmTop + 2);
-
-      
+            ctx.font = '10px monospace';
+            ctx.fillStyle = '#22d3ee';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText('經調整淨利率', paddingLeft + 2, nmTop + 2);
+        }
     }
 
     function drawValuationChart(paddingLeft, plotWidth, stepX) {
