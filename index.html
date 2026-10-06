@@ -706,7 +706,7 @@
         </div>
 
         <div class="canvas-wrapper">
-            <canvas id="stockCanvas" width="800" height="780"></canvas>
+            <canvas id="stockCanvas" width="800" height="900"></canvas>
         </div>
 
         <div class="legend">
@@ -1889,11 +1889,7 @@ const DEBT_HEIGHT = 50;
         if (marginsData.length === 0) return;
 
         const marginTop = getMarginsTop();
-        if (roeVisible) {
-            marginTop = getROETop() + ROE_HEIGHT + GAP;
-        } else {
-            marginTop = PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
-        }
+        
 
         const GM_HEIGHT = 35;
         const NM_HEIGHT = 35;
