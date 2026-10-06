@@ -1214,28 +1214,33 @@ const DEBT_HEIGHT = 50;
     }
 
     async function loadROE(market, stockInfo) {
-        const roePath = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_roe.json`;
-        try {
-            const res = await fetch(roePath);
-            if (!res.ok) throw new Error('ROE 檔不存在');
-            roeData = await res.json();
-        } catch (err) {
-            console.warn('ROE 資料載入失敗:', err);
-            roeData = [];
-        }
+    const roePath = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_roe.json`;
+    try {
+        const res = await fetch(roePath);
+        if (!res.ok) throw new Error('ROE 檔不存在');
+        const raw = await res.json();
+        roeData = raw.filter(d => d.roe != null);   // ← 加這行過濾
+    } catch (err) {
+        console.warn('ROE 資料載入失敗:', err);
+        roeData = [];
     }
+}
 
     async function loadMargins(market, stockInfo) {
-        const marginPath = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_margins.json`;
-        try {
-            const res = await fetch(marginPath);
-            if (!res.ok) throw new Error('利潤率檔不存在');
-            marginsData = await res.json();
-        } catch (err) {
-            console.warn('利潤率資料載入失敗:', err);
-            marginsData = [];
-        }
+    const marginPath = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_margins.json`;
+    try {
+        const res = await fetch(marginPath);
+        if (!res.ok) throw new Error('利潤率檔不存在');
+        const raw = await res.json();
+        // 兩個欄位至少要有一個
+        marginsData = raw.filter(d =>
+            d.grossMargin != null || d.adjustedNetMargin != null
+        );
+    } catch (err) {
+        console.warn('利潤率資料載入失敗:', err);
+        marginsData = [];
     }
+}
 
     async function loadValuation(market, stockInfo) {
         const path = `data/${market}/${stockInfo.folder}/${market}_${stockInfo.code}_valuation.json`;
@@ -1375,7 +1380,7 @@ const DEBT_HEIGHT = 50;
 
         // ====== 加權平均 ROE ======
         if (roeData.length > 0) {
-            const latestROE = [...roeData].reverse().find(d => d.date <= currentDate);
+            const latestROE = [...roeData].reverse().find(d => d.date <= currentDate && d.roe != null);
             if (latestROE) {
                 const roeEl = document.getElementById('vsROE');
                 roeEl.textContent = latestROE.roe.toFixed(2) + '%';
@@ -1402,8 +1407,10 @@ const DEBT_HEIGHT = 50;
 
                 // ====== 毛利率 ======
         if (marginsData.length > 0) {
-            const latestMargin = [...marginsData].reverse().find(d => d.date <= currentDate);
-            if (latestMargin && latestMargin.grossMargin != null) {
+            const latestMargin = [...marginsData].reverse().find(d =>
+    d.date <= currentDate && d.grossMargin != null
+);
+if (latestMargin) {
                 const gmEl = document.getElementById('vsGrossMargin');
                 gmEl.textContent = latestMargin.grossMargin.toFixed(1) + '%';
 
@@ -1428,8 +1435,10 @@ const DEBT_HEIGHT = 50;
 
         // ====== 經調整淨利率 ======
         if (marginsData.length > 0) {
-            const latestMargin = [...marginsData].reverse().find(d => d.date <= currentDate);
-            if (latestMargin && latestMargin.adjustedNetMargin != null) {
+            const latestMargin = [...marginsData].reverse().find(d =>
+    d.date <= currentDate && d.adjustedNetMargin != null
+);
+if (latestMargin) {
                 const nmEl = document.getElementById('vsNetMargin');
                 nmEl.textContent = latestMargin.adjustedNetMargin.toFixed(1) + '%';
 
@@ -1826,20 +1835,25 @@ const DEBT_HEIGHT = 50;
     }
 
     function drawROEChart(paddingLeft, plotWidth, stepX) {
-        if (roeData.length === 0) return;
+    if (roeData.length === 0) return;
 
-        const roeTop = getROETop();
-        const roeBottom = roeTop + ROE_HEIGHT;
+    const roeTop = getROETop();
+    const roeBottom = roeTop + ROE_HEIGHT;
 
-        ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
-        ctx.fillRect(paddingLeft, roeTop, plotWidth, ROE_HEIGHT);
+    ctx.fillStyle = 'rgba(17, 24, 39, 0.5)';
+    ctx.fillRect(paddingLeft, roeTop, plotWidth, ROE_HEIGHT);
 
-        const roeVals = roeData.map(d => d.roe);
-        const maxRoe = Math.max(...roeVals, 0);
-        const minRoe = Math.min(...roeVals, 0);
-        const roeRange = (maxRoe - minRoe) || 1;
+    // 再過濾一次，雙重保險
+    const roeValid = roeData.filter(d => d.roe != null);
+    if (roeValid.length === 0) return;
 
-        const zeroY = roeBottom - ((0 - minRoe) / roeRange) * ROE_HEIGHT;
+    const roeVals = roeValid.map(d => d.roe);     // ← roeData 改成 roeValid
+    const maxRoe = Math.max(...roeVals, 0);
+    const minRoe = Math.min(...roeVals, 0);
+    const roeRange = (maxRoe - minRoe) || 1;
+
+    const zeroY = roeBottom - ((0 - minRoe) / roeRange) * ROE_HEIGHT;
+    
 
         ctx.beginPath();
         ctx.setLineDash([4, 4]);
@@ -1850,7 +1864,7 @@ const DEBT_HEIGHT = 50;
         ctx.stroke();
         ctx.setLineDash([]);
 
-        roeData.forEach(item => {
+        roeValid.forEach(item => { 
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
             if (idx >= visibleCount && cursorIndex < idx) return;
@@ -1909,7 +1923,22 @@ const DEBT_HEIGHT = 50;
         const gmRange = gmMax - gmMin || 1;
         const gmToY = (val) => gmBottom - ((val - gmMin) / gmRange) * GM_HEIGHT;
 
-        marginsData.forEach(item => {
+           const gmData = marginsData.filter(d => d.grossMargin != null);   // ← 新增
+    if (gmData.length === 0) {                                       // ← 新增
+        // 沒有毛利率數據就只畫標題
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#60a5fa';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('毛利率（無數據）', paddingLeft + 2, gmTop + 2);
+    } else {
+        const gmVals = gmData.map(d => d.grossMargin);                // ← 改來源
+        const gmMax = Math.max(...gmVals, 60);
+        const gmMin = Math.min(...gmVals, 0);
+        const gmRange = gmMax - gmMin || 1;
+        const gmToY = (val) => gmBottom - ((val - gmMin) / gmRange) * GM_HEIGHT;
+
+        gmData.forEach(item => {                                      // ← 改來源
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
             if (idx >= visibleCount && cursorIndex < idx) return;
@@ -1927,6 +1956,13 @@ const DEBT_HEIGHT = 50;
             ctx.textBaseline = 'bottom';
             ctx.fillText(item.grossMargin.toFixed(1) + '%', x, barTop - 2);
         });
+
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#60a5fa';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('毛利率', paddingLeft + 2, gmTop + 2);
+    });
 
         ctx.font = '10px monospace';
         ctx.fillStyle = '#60a5fa';
@@ -1951,7 +1987,29 @@ const DEBT_HEIGHT = 50;
         ctx.lineTo(canvas.width - 20, zeroY);
         ctx.stroke();
 
-        marginsData.forEach(item => {
+            const nmData = marginsData.filter(d => d.adjustedNetMargin != null);   // ← 新增
+    if (nmData.length === 0) {
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#22d3ee';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('經調整淨利率（無數據）', paddingLeft + 2, nmTop + 2);
+    } else {
+        const nmVals = nmData.map(d => d.adjustedNetMargin);               // ← 改來源
+        const nmMax = Math.max(...nmVals, 20);
+        const nmMin = Math.min(...nmVals, -30);
+        const nmRange = nmMax - nmMin || 1;
+        const nmToY = (val) => nmBottom - ((val - nmMin) / nmRange) * NM_HEIGHT;
+        const zeroY = nmToY(0);
+
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(156, 163, 175, 0.6)';
+        ctx.lineWidth = 1;
+        ctx.moveTo(paddingLeft, zeroY);
+        ctx.lineTo(canvas.width - 20, zeroY);
+        ctx.stroke();
+
+        nmData.forEach(item => {                                           // ← 改來源
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
             if (idx >= visibleCount && cursorIndex < idx) return;
@@ -1968,7 +2026,7 @@ const DEBT_HEIGHT = 50;
                 : 'rgba(239, 68, 68, 0.7)';
             ctx.fillRect(x - barWidth / 2, barTop, barWidth, Math.max(2, barHeight));
 
-             ctx.font = 'bold 9px monospace';
+            ctx.font = 'bold 9px monospace';
             ctx.fillStyle = item.adjustedNetMargin >= 0 ? '#67e8f9' : '#fca5a5';
             ctx.textAlign = 'center';
             if (item.adjustedNetMargin >= 0) {
@@ -1979,6 +2037,13 @@ const DEBT_HEIGHT = 50;
                 ctx.fillText(item.adjustedNetMargin.toFixed(1) + '%', x, barTop + barHeight + 2);
             }
         });
+
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#22d3ee';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('經調整淨利率', paddingLeft + 2, nmTop + 2);
+    });
 
         ctx.font = '10px monospace';
         ctx.fillStyle = '#22d3ee';
@@ -2325,7 +2390,7 @@ const pbMin = pbVals.length > 0 ? Math.min(...pbVals, 0) : 0;
         ctx.fillText('負債比率', paddingLeft + 2, dTop + 2);
     }
     
-    function drawChart() {
+        function drawChartInner() {     
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         const data = fullData.slice(0, visibleCount);
@@ -2678,6 +2743,14 @@ const pbMin = pbVals.length > 0 ? Math.min(...pbVals, 0) : 0;
         highlightQuarterDot(cursorData.date);
     }
 
+     function drawChart() {
+        try {
+            drawChartInner();
+        } catch (e) {
+            console.error('drawChart 繪製異常:', e);
+        }
+    }
+    
     function roundRect(ctx, x, y, width, height, radius) {
         ctx.beginPath();
         ctx.moveTo(x + radius, y);
