@@ -2026,6 +2026,7 @@ const DEBT_HEIGHT = 50;
         ctx.strokeStyle = '#f59e0b';
         let started = false;
         valuationData.forEach(item => {
+            if (item.pe == null) return;
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
             if (idx >= visibleCount && cursorIndex < idx) return;
@@ -2037,6 +2038,7 @@ const DEBT_HEIGHT = 50;
         ctx.stroke();
 
         valuationData.forEach(item => {
+             if (item.pe == null) return; 
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
             if (idx >= visibleCount && cursorIndex < idx) return;
@@ -2076,6 +2078,7 @@ const DEBT_HEIGHT = 50;
         ctx.strokeStyle = '#a78bfa';
         started = false;
         valuationData.forEach(item => {
+            if (item.pb == null) return; 
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
             if (idx >= visibleCount && cursorIndex < idx) return;
@@ -2087,6 +2090,7 @@ const DEBT_HEIGHT = 50;
         ctx.stroke();
 
         valuationData.forEach(item => {
+            if (item.pb == null) return; 
             const idx = fullData.findIndex(d => d.date >= item.date);
             if (idx < 0) return;
             if (idx >= visibleCount && cursorIndex < idx) return;
@@ -2113,16 +2117,20 @@ const DEBT_HEIGHT = 50;
     }
 
 
-        function getCashflowTop() {
-        if (valuationVisible) {
-            return getValuationTop() + VALUATION_HEIGHT + GAP;
-        } else if (marginVisible) {
-            return getMarginsBottom() + GAP;
-        } else if (roeVisible) {
-            return getROETop() + ROE_HEIGHT + GAP;
-        } else {
-            return PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
+          function getCashflowTop() {
+        let top = PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
+
+        if (roeVisible) {
+            top += ROE_HEIGHT + GAP;
         }
+        if (marginVisible) {
+            top += MARGIN_HEIGHT + GAP;
+        }
+        if (valuationVisible) {
+            top += VALUATION_HEIGHT + GAP;
+        }
+
+        return top;
     }
 
         // ====== 繪製經營活動現金流 / 可支配現金副圖（兩根並排柱）======
@@ -2202,18 +2210,23 @@ const DEBT_HEIGHT = 50;
         ctx.fillText('可支配現金(彈藥) / 億元', paddingLeft + 120, cfTop + 2);
     }
 
-        function getDebtTop() {
-        if (cashflowVisible) {
-            return getCashflowTop() + CASHFLOW_HEIGHT + GAP;
-        } else if (valuationVisible) {
-            return getValuationTop() + VALUATION_HEIGHT + GAP;
-        } else if (marginVisible) {
-            return getMarginsBottom() + GAP;
-        } else if (roeVisible) {
-            return getROETop() + ROE_HEIGHT + GAP;
-        } else {
-            return PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
+           function getDebtTop() {
+        let top = PRICE_HEIGHT + GAP + VOLUME_HEIGHT + GAP;
+
+        if (roeVisible) {
+            top += ROE_HEIGHT + GAP;
         }
+        if (marginVisible) {
+            top += MARGIN_HEIGHT + GAP;
+        }
+        if (valuationVisible) {
+            top += VALUATION_HEIGHT + GAP;
+        }
+        if (cashflowVisible) {
+            top += CASHFLOW_HEIGHT + GAP;
+        }
+
+        return top;
     }
 
             // ====== 繪製負債比率副圖（折線，顏色動態）======
